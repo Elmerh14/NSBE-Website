@@ -3,3 +3,21 @@
 
 ### Obsidian ###
 .obsidian/
+
+### Environment ###
+.env
+.env.*
+!.env.example
+
+### Node ###
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+*.log
+
+### Prisma ###
+apps/api/src/generated/
+
+### OS ###
+.DS_Store

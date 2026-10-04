@@ -1,0 +1,19 @@
+// Prisma schema for the NSBE website.
+//
+// Models are added by the engineer who owns them (see docs/engineers/*.md).
+// The first model and migration, `User`, is Elmer's hand-written task.
+//
+// Conventions:
+//   - Models: PascalCase singular, mapped to snake_case plural tables with @@map("...")
+//   - Fields: camelCase, mapped to snake_case columns with @map("...")
+//   - Run migrations only against your own Neon dev branch:
+//       pnpm --filter api prisma migrate dev --name <change>
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
