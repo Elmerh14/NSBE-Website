@@ -23,7 +23,7 @@ Owns the chapter's activity content (events, sponsors, gallery), the join/contac
 
 - Neon branch workflow with Elmer: document how each engineer uses their own branch and how to refresh it from `main`.
 - Migration-on-deploy: run `prisma migrate deploy` against production as part of the API release.
-- Domain/DNS on Cloudflare: `nsbe.<domain>`, `admin.`, `api.`, `media.`.
+- Domain/DNS on Cloudflare: `nsbe.<domain>`, `admin.`, `api.`.
 
 ## Hand-written tasks
 

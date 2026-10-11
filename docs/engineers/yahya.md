@@ -4,23 +4,24 @@ Owns how photos and videos get into the system (uploads, storage, the media libr
 
 ## Features owned
 
-| Feature       | DB                                                            | API                                                                                                                      | Admin UI                                                                                                      | Public UI                                                          |
-| ------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| Media uploads | `Media`                                                       | `POST /api/admin/media/upload-url` (presign), `POST /api/admin/media` (save after upload), `DELETE /api/admin/media/:id` | Upload component with progress; reusable **media picker** used by hero, leadership, events, sponsors, gallery | Helper for building media URLs + responsive image/video components |
-| Media library | `Media`                                                       | `GET /api/admin/media` (paginated, filter by type)                                                                       | Media library page: browse, alt text, delete                                                                  | —                                                                  |
-| Leadership    | `LeadershipMember`                                            | `GET /api/leadership`, `/api/admin/leadership` CRUD + reorder                                                            | Leadership editor with drag-to-reorder                                                                        | Leadership page (e-board, chairs)                                  |
-| About         | — (static content or `SiteSettings` fields, agree with Elmer) | —                                                                                                                        | —                                                                                                             | About page                                                         |
+| Feature       | DB                                                            | API                                                                                                                      | Admin UI                                                                                                      | Public UI                                                                  |
+| ------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Media uploads | `Media`                                                       | `POST /api/admin/media/upload-url` (presign), `POST /api/admin/media` (save after upload), `DELETE /api/admin/media/:id` | Upload component with progress; reusable **media picker** used by hero, leadership, events, sponsors, gallery | Responsive image/video components that use the presigned URLs from the API |
+| Media library | `Media`                                                       | `GET /api/admin/media` (paginated, filter by type)                                                                       | Media library page: browse, alt text, delete                                                                  | —                                                                          |
+| Leadership    | `LeadershipMember`                                            | `GET /api/leadership`, `/api/admin/leadership` CRUD + reorder                                                            | Leadership editor with drag-to-reorder                                                                        | Leadership page (e-board, chairs)                                          |
+| About         | — (static content or `SiteSettings` fields, agree with Elmer) | —                                                                                                                        | —                                                                                                             | About page                                                                 |
 
 ## Security responsibilities
 
 - Allow-list of MIME types (e.g. `image/jpeg`, `image/png`, `image/webp`, `video/mp4`) and size limits per type, checked **before** issuing a presigned URL.
 - Presigned URLs are short-lived (a few minutes) and tied to one generated object key. The client never chooses the key.
-- Bucket CORS (set with `gcloud storage buckets update --cors-file`): allow PUT only from the admin origin(s). Public read via IAM (`allUsers` → Storage Object Viewer), never public write.
-- Dev HMAC key belongs to a service account that can only access `nsbe-media-dev`.
+- Bucket CORS (set through Filebase's S3 API, e.g. `aws s3api put-bucket-cors --endpoint-url https://s3.filebase.io`): allow PUT only from the admin origin(s), and GET from the web and admin origins.
+- The bucket stays **private**. Reads go through presigned GET URLs (max 7 days) that the API signs; never make objects public.
+- There is one bucket for dev and prod (free plan limit), so the access key and secret key stay out of git and out of the browser.
 
 ## Infra responsibilities
 
-- Firebase Storage / GCS bucket setup alongside Elmer: CORS rules, public read access and the public media URL.
+- Filebase bucket setup (one private bucket) alongside Elmer: CORS rules.
 - Cloudflare Pages projects for `apps/web` and `apps/admin`: build settings, env vars, PR previews.
 
 ## Hand-written tasks
@@ -39,10 +40,10 @@ Write these yourself. Your agent will explain and review, but won't write them.
 
 1. **Week 1:** scaffold with the team; agree on the `packages/shared` media schemas.
 2. **Weeks 2–3:** `Media` model → presign route + validation → upload component → save-media endpoint → media picker → `LeadershipMember` + leadership API → leadership editor + public page.
-3. **Weeks 4–5:** media library page → about page → bucket CORS + public media URL.
+3. **Weeks 4–5:** media library page → about page → bucket CORS.
 4. **Week 6:** Cloudflare Pages production deploys for web + admin.
 
 ## Depends on / provides
 
-- **Provides** the media picker and media URL helpers. Elmer (hero) and Abduraheem (events, sponsors, gallery) need them, so ship a basic picker early.
+- **Provides** the media picker and an API helper that turns a `Media` row into a presigned GET URL, used by every route that returns media. Elmer (hero) and Abduraheem (events, sponsors, gallery) need them, so ship a basic picker early.
 - **Depends on** Elmer's `requireAuth` and admin layout.

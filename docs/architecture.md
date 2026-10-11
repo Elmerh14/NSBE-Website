@@ -23,24 +23,24 @@ Two websites backed by one API:
                     │ api.<domain>   │
                     └───────┬────────┘
                             │ presigned upload URL
-       browser uploads ─────▼─────► Firebase Storage (Google Cloud Storage)
+       browser uploads ─────▼─────► Filebase (S3-compatible, private bucket)
 ```
 
 ## Tech stack
 
-| Layer                     | Choice                                                                                                         |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Frontends                 | React + TypeScript + Vite                                                                                      |
-| Routing / data / forms    | React Router, TanStack Query, react-hook-form + zod                                                            |
-| UI components             | shadcn/ui (Radix base) in `packages/ui`, shared by web + admin; `@dnd-kit` for drag-and-drop reordering        |
-| Styling                   | Tailwind CSS                                                                                                   |
-| Backend                   | Node + TypeScript + Fastify                                                                                    |
-| Validation / API contract | zod schemas in `packages/shared`, wired into Fastify via `fastify-type-provider-zod`                           |
-| Database                  | PostgreSQL on Neon, accessed with Prisma                                                                       |
-| Media storage             | Firebase Storage / Google Cloud Storage, used through `@aws-sdk/client-s3` against GCS's S3-compatible XML API |
-| Auth                      | Email + password, argon2id hashes, JWTs in httpOnly cookies                                                    |
-| Tests                     | Vitest                                                                                                         |
-| Tooling                   | pnpm workspaces, ESLint, Prettier, Husky + lint-staged, GitHub Actions                                         |
+| Layer                     | Choice                                                                                                  |
+| ------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Frontends                 | React + TypeScript + Vite                                                                               |
+| Routing / data / forms    | React Router, TanStack Query, react-hook-form + zod                                                     |
+| UI components             | shadcn/ui (Radix base) in `packages/ui`, shared by web + admin; `@dnd-kit` for drag-and-drop reordering |
+| Styling                   | Tailwind CSS                                                                                            |
+| Backend                   | Node + TypeScript + Fastify                                                                             |
+| Validation / API contract | zod schemas in `packages/shared`, wired into Fastify via `fastify-type-provider-zod`                    |
+| Database                  | PostgreSQL on Neon, accessed with Prisma                                                                |
+| Media storage             | Filebase (one private bucket), used through `@aws-sdk/client-s3` against its S3-compatible API          |
+| Auth                      | Email + password, argon2id hashes, JWTs in httpOnly cookies                                             |
+| Tests                     | Vitest                                                                                                  |
+| Tooling                   | pnpm workspaces, ESLint, Prettier, Husky + lint-staged, GitHub Actions                                  |
 
 ## Repo layout
 
@@ -75,15 +75,22 @@ Why the admin panel is its own app: admin code never ships to public visitors, i
 2. API checks the type (allowed image/video MIME types) and size limit, then returns a short-lived **presigned PUT URL** for the storage bucket.
 3. The browser uploads the file straight to the bucket. Large files such as the hero video never pass through the API.
 4. Admin app tells the API the upload finished; the API saves a `Media` row.
-5. Public site loads media from the bucket's public URL (`MEDIA_PUBLIC_URL`).
+5. The bucket is private, so the public site can't load files from it directly. When an API response includes media (hero, leadership, events, sponsors, gallery), the API attaches a **presigned GET URL** to each item, and the site uses that URL.
 
-#### S3 SDK against Google Cloud Storage
+#### Serving media with presigned GET URLs
 
-Firebase Storage buckets are ordinary Google Cloud Storage buckets. GCS offers an S3-compatible XML API, so the API keeps using the AWS SDK:
+- The Filebase free plan has no public buckets, so every read goes through a presigned GET URL signed by the API.
+- Presigned URLs last at most **7 days**. Sign them for 7 days and keep any `Cache-Control` / TanStack Query cache on responses that contain them well under that (e.g. a few hours), so the site never shows an expired link.
+- URLs change each time they're signed, so browsers re-download media more often than with a fixed public URL. That's acceptable for this site.
+- The `Media` row stores only the object key (`s3_key`). URLs are never stored in the database.
 
-- Credentials are a GCS **HMAC key** (Google Cloud Console → Cloud Storage → Settings → Interoperability), tied to a service account that can only access its bucket.
-- Client config: `endpoint: S3_ENDPOINT` (`https://storage.googleapis.com`), `region: 'auto'`, and `requestChecksumCalculation` / `responseChecksumValidation` set to `'WHEN_REQUIRED'`. GCS rejects the checksum headers newer AWS SDK versions send by default.
-- Firebase Security Rules do **not** apply on this path; access is controlled by Google Cloud IAM. Only the API holds the key; the browser only ever gets a short-lived presigned URL.
+#### S3 SDK against Filebase
+
+Filebase offers an S3-compatible API, so the API uses the AWS SDK:
+
+- Credentials are the three values the provider gives us: the API endpoint (`S3_ENDPOINT`), an access key (`S3_ACCESS_KEY_ID`) and a secret key (`S3_SECRET_ACCESS_KEY`).
+- Client config: `endpoint: S3_ENDPOINT` (`https://s3.filebase.io`), `region: 'auto'`, and `requestChecksumCalculation` / `responseChecksumValidation` set to `'WHEN_REQUIRED'`. Newer AWS SDK versions send checksum headers by default that S3-compatible providers don't always accept.
+- Only the API holds the access key and secret key; the browser only ever gets short-lived presigned URLs.
 
 ## Auth & access
 
@@ -164,31 +171,30 @@ There is **no local infrastructure** (no Docker). Elmer provisions the hosted se
   - One branch per engineer: `dev-elmer`, `dev-yahya`, `dev-abduraheem`.
   - Each engineer runs `prisma migrate dev` only against their own branch. Prisma can reset a database it thinks has drifted, which would wipe a shared one.
   - Production only changes through `prisma migrate deploy` during a release.
-- **Firebase Storage (GCS)**: `nsbe-media-dev` for development, `nsbe-media-prod` for the live site, both in the chapter's Firebase project (Blaze plan required for Storage). Bucket names are global in GCS, so the final names may need a suffix.
+- **Filebase**: **one private bucket**, shared by development and production, because the free plan only allows one. Everyone uses the same endpoint, access key and secret key.
 - **Setup**: copy `.env.example` to `.env` and paste in your values. `.env` is gitignored.
 
-| Variable                                    | Used by         | Purpose                             |
-| ------------------------------------------- | --------------- | ----------------------------------- |
-| `DATABASE_URL`                              | api             | Neon pooled connection string       |
-| `DIRECT_URL`                                | api             | Neon direct connection (migrations) |
-| `JWT_SECRET`                                | api             | Signs access tokens                 |
-| `S3_ENDPOINT`                               | api             | `https://storage.googleapis.com`    |
-| `S3_REGION`                                 | api             | `auto` for GCS                      |
-| `S3_BUCKET`                                 | api             | Bucket name                         |
-| `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | api             | GCS HMAC key                        |
-| `MEDIA_PUBLIC_URL`                          | api, web, admin | Public base URL for media           |
-| `WEB_ORIGIN` / `ADMIN_ORIGIN`               | api             | Allowed CORS origins                |
-| `VITE_API_URL`                              | web, admin      | API base URL                        |
+| Variable                                    | Used by    | Purpose                             |
+| ------------------------------------------- | ---------- | ----------------------------------- |
+| `DATABASE_URL`                              | api        | Neon pooled connection string       |
+| `DIRECT_URL`                                | api        | Neon direct connection (migrations) |
+| `JWT_SECRET`                                | api        | Signs access tokens                 |
+| `S3_ENDPOINT`                               | api        | `https://s3.filebase.io`            |
+| `S3_REGION`                                 | api        | `auto` for Filebase                 |
+| `S3_BUCKET`                                 | api        | Bucket name                         |
+| `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | api        | Storage access key + secret key     |
+| `WEB_ORIGIN` / `ADMIN_ORIGIN`               | api        | Allowed CORS origins                |
+| `VITE_API_URL`                              | web, admin | API base URL                        |
 
 ## Hosting
 
-| Piece     | Service                           | Notes                                                                                                                            |
-| --------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Database  | Neon (free tier)                  | Pooled URL for the app, direct URL for migrations                                                                                |
-| Media     | Firebase Storage (GCS)            | Download (egress) is billed beyond the free allowance; watch the hero video. Any S3-compatible store works by changing env vars. |
-| Frontends | Cloudflare Pages                  | Two projects, `web` and `admin`, each with PR preview deploys                                                                    |
-| API       | Render (Docker)                   | Free tier sleeps when idle; consider the ~$7/mo plan at launch                                                                   |
-| Domain    | Custom domain or school subdomain | **Required.** Cookies only work when web, admin and API share one parent domain.                                                 |
+| Piece     | Service                           | Notes                                                                                                              |
+| --------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Database  | Neon (free tier)                  | Pooled URL for the app, direct URL for migrations                                                                  |
+| Media     | Filebase (free plan)              | 5 GB, one private bucket; media served via presigned GET URLs. Any S3-compatible store works by changing env vars. |
+| Frontends | Cloudflare Pages                  | Two projects, `web` and `admin`, each with PR preview deploys                                                      |
+| API       | Render (Docker)                   | Free tier sleeps when idle; consider the ~$7/mo plan at launch                                                     |
+| Domain    | Custom domain or school subdomain | **Required.** Cookies only work when web, admin and API share one parent domain.                                   |
 
 The public site caches content (`Cache-Control` + TanStack Query), so a sleeping API doesn't leave the page blank.
 
@@ -218,7 +224,7 @@ Each engineer owns whole features end to end: Prisma model → API routes → ad
 | Features | Auth, user management, hero + home page, site settings | Media uploads + media library, leadership, about page | Events, sponsors, gallery, join/contact page              |
 | DB       | `User`, `RefreshToken`, `Hero`, `SiteSettings`         | `Media`, `LeadershipMember`                           | `Event`, `Sponsor`, `GalleryItem`                         |
 | Security | Password hashing, JWT + refresh, role guards           | Upload validation, bucket CORS, bucket access         | CORS, rate limiting, security headers (`@fastify/helmet`) |
-| Infra    | API deploy on Render, CI pipeline                      | Storage buckets, Cloudflare Pages for web + admin     | Neon branches + migration-on-deploy, domain/DNS           |
+| Infra    | API deploy on Render, CI pipeline                      | Storage bucket, Cloudflare Pages for web + admin      | Neon branches + migration-on-deploy, domain/DNS           |
 
 Elmer is project lead and provisions accounts and credentials.
 
@@ -240,15 +246,15 @@ Per-engineer details: [`docs/engineers/`](engineers/).
 
 ## Milestones
 
-| When      | Work                                                                                                                                                                                      |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Week 1    | **Foundation, together:** monorepo scaffold, lint/format/CI tooling, `.env.example`, Prisma schema v1, `packages/shared` conventions. Elmer provisions Neon branches and storage buckets. |
-| Weeks 2–3 | **Core:** Elmer does auth + users; Yahya does media uploads + leadership; Abduraheem does events. Each end to end.                                                                        |
-| Weeks 4–5 | **Content:** Elmer does hero/home + settings; Yahya does the media library + about; Abduraheem does sponsors, gallery and contact.                                                        |
-| Week 6    | **Launch:** production Neon/Firebase Storage/Render/Pages setup, domain and cookies verified, real content entered, polish.                                                               |
+| When      | Work                                                                                                                                                                                         |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Week 1    | **Foundation, together:** monorepo scaffold, lint/format/CI tooling, `.env.example`, Prisma schema v1, `packages/shared` conventions. Elmer provisions Neon branches and the storage bucket. |
+| Weeks 2–3 | **Core:** Elmer does auth + users; Yahya does media uploads + leadership; Abduraheem does events. Each end to end.                                                                           |
+| Weeks 4–5 | **Content:** Elmer does hero/home + settings; Yahya does the media library + about; Abduraheem does sponsors, gallery and contact.                                                           |
+| Week 6    | **Launch:** production Neon/Filebase/Render/Pages setup, domain and cookies verified, real content entered, polish.                                                                          |
 
 ## Open decisions
 
 - Render free or paid API plan at launch.
 - Domain name.
-- Media URL: serve from `storage.googleapis.com/<bucket>` (default) or a custom `media.<domain>`. A custom domain on GCS needs either a bucket named after the domain behind a proxy (e.g. Cloudflare) or a paid load balancer.
+- Media: stay on presigned GET URLs (Filebase free) or move to a paid plan / provider with public buckets if caching or link expiry becomes a problem.
