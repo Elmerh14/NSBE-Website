@@ -73,6 +73,8 @@ Use these. Don't introduce alternatives.
 | Routing              | React Router                                                                                                             |
 | Server data fetching | TanStack Query (no `useEffect` + `fetch` for API data)                                                                   |
 | Forms                | react-hook-form + zod (`@hookform/resolvers/zod`)                                                                        |
+| UI components        | shadcn/ui (Radix base) in `packages/ui`. Don't build components from scratch; see **UI components** below                |
+| Drag and drop        | `@dnd-kit/core` + `@dnd-kit/sortable` (e.g. leadership reorder)                                                          |
 | Styling              | Tailwind CSS                                                                                                             |
 | Backend              | Fastify + `fastify-type-provider-zod`                                                                                    |
 | Database             | Prisma (PostgreSQL on Neon)                                                                                              |
@@ -99,17 +101,37 @@ apps/api/src/modules/<feature>/*.test.ts
 apps/web/src/features/<feature>/             # components, hooks, api calls for one feature
 apps/admin/src/features/<feature>/
 packages/shared/src/<feature>.ts             # zod schemas for that feature
+packages/ui/src/components/<name>.tsx        # shadcn components shared by web + admin
 ```
 
 Keep routes thin: parse, call the service, return. Logic belongs in services.
 
 ### Naming
 
-- React components: `PascalCase`, in `PascalCase.tsx` files, one component per file.
+- React components: `PascalCase`, in `PascalCase.tsx` files, one component per file. Exception: shadcn files in `packages/ui/src/components` keep the CLI's `kebab-case.tsx` names and multi-export files, so `shadcn add` can update them.
 - Hooks: `useSomething`, in `useSomething.ts`.
 - Other files: `kebab-case.ts`.
 - Functions and variables: `camelCase`. Types and interfaces: `PascalCase`. Constants: `UPPER_SNAKE_CASE`.
 - Prisma models: `PascalCase` singular (`LeadershipMember`), mapped to `snake_case` plural tables with `@@map`.
+
+### UI components
+
+`packages/ui` (`@nsbe/ui`) is the project's component library. Both apps use it; neither app installs UI components of its own.
+
+- **Don't build UI components from scratch.** Use shadcn/ui. Check https://ui.shadcn.com/docs/components before writing anything custom.
+- **Check `packages/ui/src/components` first.** If the component is there, import it from the package:
+  ```tsx
+  import { Button } from '@nsbe/ui/components/button';
+  ```
+- **If it isn't there, add it once, to `packages/ui` only**, and commit it in the same PR:
+  ```bash
+  pnpm --filter @nsbe/ui shadcn add <component>   # e.g. table, select, sonner
+  ```
+- **Never** run `shadcn add` / `shadcn init` inside `apps/web` or `apps/admin`, never install `radix-ui`, `@radix-ui/*` or other component libraries in an app, and never copy a shadcn component into an app folder.
+- List any newly added `packages/ui` components in the PR description, so engineers on other branches don't add the same one twice.
+- Feature components (e.g. `EventCard`, `LoginForm`) live in `apps/*/src/features/<feature>/` and are composed from `@nsbe/ui` components and Tailwind classes.
+- Restyle by editing the theme tokens in `packages/ui/src/styles/globals.css` (colours, radius, font), not by forking components per page. If a shadcn component itself must change, edit it in `packages/ui` so both apps get the change.
+- Only build something custom when shadcn has no equivalent; say why in the PR.
 
 ### TypeScript
 

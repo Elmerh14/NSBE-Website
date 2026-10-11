@@ -32,6 +32,7 @@ Two websites backed by one API:
 | ------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | Frontends                 | React + TypeScript + Vite                                                                                      |
 | Routing / data / forms    | React Router, TanStack Query, react-hook-form + zod                                                            |
+| UI components             | shadcn/ui (Radix base) in `packages/ui`, shared by web + admin; `@dnd-kit` for drag-and-drop reordering        |
 | Styling                   | Tailwind CSS                                                                                                   |
 | Backend                   | Node + TypeScript + Fastify                                                                                    |
 | Validation / API contract | zod schemas in `packages/shared`, wired into Fastify via `fastify-type-provider-zod`                           |
@@ -50,7 +51,7 @@ apps/
   api/          Fastify backend + Prisma schema/migrations
 packages/
   shared/       zod schemas + inferred types — the API contract all apps import
-  ui/           (optional) shared components / design tokens
+  ui/           shadcn/ui components + theme tokens (globals.css), shared by web + admin
 docs/
   architecture.md
   engineers/    one brief per engineer (elmer.md, yahya.md, abduraheem.md)

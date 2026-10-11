@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "types": [],
+    // Lets the shadcn CLI resolve the aliases in components.json.
+    "paths": {
+      "@nsbe/ui/*": ["./src/*"]
+    }
+  },
+  "include": ["src"]
+}
