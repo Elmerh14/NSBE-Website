@@ -44,8 +44,14 @@ export default defineConfig([
 
   // Frontends
   {
-    files: ['apps/web/**/*.{ts,tsx}', 'apps/admin/**/*.{ts,tsx}'],
+    files: ['apps/web/**/*.{ts,tsx}', 'apps/admin/**/*.{ts,tsx}', 'packages/ui/**/*.{ts,tsx}'],
     extends: [reactHooks.configs.flat['recommended-latest'], reactRefresh.configs.vite],
     languageOptions: { globals: globals.browser },
+  },
+
+  // shadcn components export helpers (e.g. buttonVariants) next to components by design.
+  {
+    files: ['packages/ui/src/components/**/*.tsx'],
+    rules: { 'react-refresh/only-export-components': 'off' },
   },
 ]);

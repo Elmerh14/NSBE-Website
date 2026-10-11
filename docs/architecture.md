@@ -23,23 +23,24 @@ Two websites backed by one API:
                     │ api.<domain>   │
                     └───────┬────────┘
                             │ presigned upload URL
-       browser uploads ─────▼─────► Cloudflare R2 (media.<domain>)
+       browser uploads ─────▼─────► Firebase Storage (Google Cloud Storage)
 ```
 
 ## Tech stack
 
-| Layer                     | Choice                                                                               |
-| ------------------------- | ------------------------------------------------------------------------------------ |
-| Frontends                 | React + TypeScript + Vite                                                            |
-| Routing / data / forms    | React Router, TanStack Query, react-hook-form + zod                                  |
-| Styling                   | Tailwind CSS                                                                         |
-| Backend                   | Node + TypeScript + Fastify                                                          |
-| Validation / API contract | zod schemas in `packages/shared`, wired into Fastify via `fastify-type-provider-zod` |
-| Database                  | PostgreSQL on Neon, accessed with Prisma                                             |
-| Media storage             | Cloudflare R2 (S3-compatible, used through `@aws-sdk/client-s3`)                     |
-| Auth                      | Email + password, argon2id hashes, JWTs in httpOnly cookies                          |
-| Tests                     | Vitest                                                                               |
-| Tooling                   | pnpm workspaces, ESLint, Prettier, Husky + lint-staged, GitHub Actions               |
+| Layer                     | Choice                                                                                                         |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Frontends                 | React + TypeScript + Vite                                                                                      |
+| Routing / data / forms    | React Router, TanStack Query, react-hook-form + zod                                                            |
+| UI components             | shadcn/ui (Radix base) in `packages/ui`, shared by web + admin; `@dnd-kit` for drag-and-drop reordering        |
+| Styling                   | Tailwind CSS                                                                                                   |
+| Backend                   | Node + TypeScript + Fastify                                                                                    |
+| Validation / API contract | zod schemas in `packages/shared`, wired into Fastify via `fastify-type-provider-zod`                           |
+| Database                  | PostgreSQL on Neon, accessed with Prisma                                                                       |
+| Media storage             | Firebase Storage / Google Cloud Storage, used through `@aws-sdk/client-s3` against GCS's S3-compatible XML API |
+| Auth                      | Email + password, argon2id hashes, JWTs in httpOnly cookies                                                    |
+| Tests                     | Vitest                                                                                                         |
+| Tooling                   | pnpm workspaces, ESLint, Prettier, Husky + lint-staged, GitHub Actions                                         |
 
 ## Repo layout
 
@@ -50,7 +51,7 @@ apps/
   api/          Fastify backend + Prisma schema/migrations
 packages/
   shared/       zod schemas + inferred types — the API contract all apps import
-  ui/           (optional) shared components / design tokens
+  ui/           shadcn/ui components + theme tokens (globals.css), shared by web + admin
 docs/
   architecture.md
   engineers/    one brief per engineer (elmer.md, yahya.md, abduraheem.md)
@@ -71,10 +72,18 @@ Why the admin panel is its own app: admin code never ships to public visitors, i
 ### Media uploads
 
 1. Admin app asks the API for an upload URL, sending the file's type and size.
-2. API checks the type (allowed image/video MIME types) and size limit, then returns a short-lived **presigned PUT URL** for R2.
-3. The browser uploads the file straight to R2. Large files such as the hero video never pass through the API.
+2. API checks the type (allowed image/video MIME types) and size limit, then returns a short-lived **presigned PUT URL** for the storage bucket.
+3. The browser uploads the file straight to the bucket. Large files such as the hero video never pass through the API.
 4. Admin app tells the API the upload finished; the API saves a `Media` row.
-5. Public site loads media from the bucket's public domain (`media.<domain>`).
+5. Public site loads media from the bucket's public URL (`MEDIA_PUBLIC_URL`).
+
+#### S3 SDK against Google Cloud Storage
+
+Firebase Storage buckets are ordinary Google Cloud Storage buckets. GCS offers an S3-compatible XML API, so the API keeps using the AWS SDK:
+
+- Credentials are a GCS **HMAC key** (Google Cloud Console → Cloud Storage → Settings → Interoperability), tied to a service account that can only access its bucket.
+- Client config: `endpoint: S3_ENDPOINT` (`https://storage.googleapis.com`), `region: 'auto'`, and `requestChecksumCalculation` / `responseChecksumValidation` set to `'WHEN_REQUIRED'`. GCS rejects the checksum headers newer AWS SDK versions send by default.
+- Firebase Security Rules do **not** apply on this path; access is controlled by Google Cloud IAM. Only the API holds the key; the browser only ever gets a short-lived presigned URL.
 
 ## Auth & access
 
@@ -155,7 +164,7 @@ There is **no local infrastructure** (no Docker). Elmer provisions the hosted se
   - One branch per engineer: `dev-elmer`, `dev-yahya`, `dev-abduraheem`.
   - Each engineer runs `prisma migrate dev` only against their own branch. Prisma can reset a database it thinks has drifted, which would wipe a shared one.
   - Production only changes through `prisma migrate deploy` during a release.
-- **R2**: `nsbe-media-dev` for development, `nsbe-media-prod` for the live site.
+- **Firebase Storage (GCS)**: `nsbe-media-dev` for development, `nsbe-media-prod` for the live site, both in the chapter's Firebase project (Blaze plan required for Storage). Bucket names are global in GCS, so the final names may need a suffix.
 - **Setup**: copy `.env.example` to `.env` and paste in your values. `.env` is gitignored.
 
 | Variable                                    | Used by         | Purpose                             |
@@ -163,22 +172,23 @@ There is **no local infrastructure** (no Docker). Elmer provisions the hosted se
 | `DATABASE_URL`                              | api             | Neon pooled connection string       |
 | `DIRECT_URL`                                | api             | Neon direct connection (migrations) |
 | `JWT_SECRET`                                | api             | Signs access tokens                 |
-| `S3_ENDPOINT`                               | api             | R2 endpoint                         |
+| `S3_ENDPOINT`                               | api             | `https://storage.googleapis.com`    |
+| `S3_REGION`                                 | api             | `auto` for GCS                      |
 | `S3_BUCKET`                                 | api             | Bucket name                         |
-| `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | api             | R2 API token                        |
+| `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | api             | GCS HMAC key                        |
 | `MEDIA_PUBLIC_URL`                          | api, web, admin | Public base URL for media           |
 | `WEB_ORIGIN` / `ADMIN_ORIGIN`               | api             | Allowed CORS origins                |
 | `VITE_API_URL`                              | web, admin      | API base URL                        |
 
 ## Hosting
 
-| Piece     | Service                           | Notes                                                                            |
-| --------- | --------------------------------- | -------------------------------------------------------------------------------- |
-| Database  | Neon (free tier)                  | Pooled URL for the app, direct URL for migrations                                |
-| Media     | Cloudflare R2                     | No download fees. Can switch to AWS S3 by changing env vars.                     |
-| Frontends | Cloudflare Pages                  | Two projects, `web` and `admin`, each with PR preview deploys                    |
-| API       | Render (Docker)                   | Free tier sleeps when idle; consider the ~$7/mo plan at launch                   |
-| Domain    | Custom domain or school subdomain | **Required.** Cookies only work when web, admin and API share one parent domain. |
+| Piece     | Service                           | Notes                                                                                                                            |
+| --------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Database  | Neon (free tier)                  | Pooled URL for the app, direct URL for migrations                                                                                |
+| Media     | Firebase Storage (GCS)            | Download (egress) is billed beyond the free allowance; watch the hero video. Any S3-compatible store works by changing env vars. |
+| Frontends | Cloudflare Pages                  | Two projects, `web` and `admin`, each with PR preview deploys                                                                    |
+| API       | Render (Docker)                   | Free tier sleeps when idle; consider the ~$7/mo plan at launch                                                                   |
+| Domain    | Custom domain or school subdomain | **Required.** Cookies only work when web, admin and API share one parent domain.                                                 |
 
 The public site caches content (`Cache-Control` + TanStack Query), so a sleeping API doesn't leave the page blank.
 
@@ -207,8 +217,8 @@ Each engineer owns whole features end to end: Prisma model → API routes → ad
 | -------- | ------------------------------------------------------ | ----------------------------------------------------- | --------------------------------------------------------- |
 | Features | Auth, user management, hero + home page, site settings | Media uploads + media library, leadership, about page | Events, sponsors, gallery, join/contact page              |
 | DB       | `User`, `RefreshToken`, `Hero`, `SiteSettings`         | `Media`, `LeadershipMember`                           | `Event`, `Sponsor`, `GalleryItem`                         |
-| Security | Password hashing, JWT + refresh, role guards           | Upload validation, R2 CORS, bucket access             | CORS, rate limiting, security headers (`@fastify/helmet`) |
-| Infra    | API deploy on Render, CI pipeline                      | R2 buckets, Cloudflare Pages for web + admin          | Neon branches + migration-on-deploy, domain/DNS           |
+| Security | Password hashing, JWT + refresh, role guards           | Upload validation, bucket CORS, bucket access         | CORS, rate limiting, security headers (`@fastify/helmet`) |
+| Infra    | API deploy on Render, CI pipeline                      | Storage buckets, Cloudflare Pages for web + admin     | Neon branches + migration-on-deploy, domain/DNS           |
 
 Elmer is project lead and provisions accounts and credentials.
 
@@ -216,13 +226,13 @@ Elmer is project lead and provisions accounts and credentials.
 
 About 90% of the work is AI-assisted. About 10% is written **by hand**, chosen so everyone writes one piece of every layer. Coding agents must not write these; they explain, hint and review instead (see `AGENTS.md`).
 
-| Layer    | Elmer                               | Yahya                                             | Abduraheem                                       |
-| -------- | ----------------------------------- | ------------------------------------------------- | ------------------------------------------------ |
-| DB       | `User` model + first migration      | `Media` model + relation to `LeadershipMember`    | `Event` model + migration                        |
-| API      | `POST /api/auth/login`              | presign-upload route                              | events CRUD routes with zod validation           |
-| Security | argon2 hashing + `requireAuth` hook | type/size checks before issuing a presigned URL   | `@fastify/rate-limit` on login + CORS config     |
-| Frontend | admin login form + auth state       | upload component (direct PUT to R2 with progress) | public Events page with data fetching            |
-| Infra    | GitHub Actions CI workflow          | Cloudflare Pages deploy config                    | Neon branch setup + `prisma migrate deploy` step |
+| Layer    | Elmer                               | Yahya                                                 | Abduraheem                                       |
+| -------- | ----------------------------------- | ----------------------------------------------------- | ------------------------------------------------ |
+| DB       | `User` model + first migration      | `Media` model + relation to `LeadershipMember`        | `Event` model + migration                        |
+| API      | `POST /api/auth/login`              | presign-upload route                                  | events CRUD routes with zod validation           |
+| Security | argon2 hashing + `requireAuth` hook | type/size checks before issuing a presigned URL       | `@fastify/rate-limit` on login + CORS config     |
+| Frontend | admin login form + auth state       | upload component (direct PUT to bucket with progress) | public Events page with data fetching            |
+| Infra    | GitHub Actions CI workflow          | Cloudflare Pages deploy config                        | Neon branch setup + `prisma migrate deploy` step |
 
 Every PR lists its hand-written files in the PR template. A different engineer reviews them, and the author should be able to explain them line by line.
 
@@ -230,14 +240,15 @@ Per-engineer details: [`docs/engineers/`](engineers/).
 
 ## Milestones
 
-| When      | Work                                                                                                                                                                                 |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Week 1    | **Foundation, together:** monorepo scaffold, lint/format/CI tooling, `.env.example`, Prisma schema v1, `packages/shared` conventions. Elmer provisions Neon branches and R2 buckets. |
-| Weeks 2–3 | **Core:** Elmer does auth + users; Yahya does media uploads + leadership; Abduraheem does events. Each end to end.                                                                   |
-| Weeks 4–5 | **Content:** Elmer does hero/home + settings; Yahya does the media library + about; Abduraheem does sponsors, gallery and contact.                                                   |
-| Week 6    | **Launch:** production Neon/R2/Render/Pages setup, domain and cookies verified, real content entered, polish.                                                                        |
+| When      | Work                                                                                                                                                                                      |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Week 1    | **Foundation, together:** monorepo scaffold, lint/format/CI tooling, `.env.example`, Prisma schema v1, `packages/shared` conventions. Elmer provisions Neon branches and storage buckets. |
+| Weeks 2–3 | **Core:** Elmer does auth + users; Yahya does media uploads + leadership; Abduraheem does events. Each end to end.                                                                        |
+| Weeks 4–5 | **Content:** Elmer does hero/home + settings; Yahya does the media library + about; Abduraheem does sponsors, gallery and contact.                                                        |
+| Week 6    | **Launch:** production Neon/Firebase Storage/Render/Pages setup, domain and cookies verified, real content entered, polish.                                                               |
 
 ## Open decisions
 
 - Render free or paid API plan at launch.
 - Domain name.
+- Media URL: serve from `storage.googleapis.com/<bucket>` (default) or a custom `media.<domain>`. A custom domain on GCS needs either a bucket named after the domain behind a proxy (e.g. Cloudflare) or a paid load balancer.
