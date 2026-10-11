@@ -15,12 +15,12 @@ Owns how photos and videos get into the system (uploads, storage, the media libr
 
 - Allow-list of MIME types (e.g. `image/jpeg`, `image/png`, `image/webp`, `video/mp4`) and size limits per type, checked **before** issuing a presigned URL.
 - Presigned URLs are short-lived (a few minutes) and tied to one generated object key. The client never chooses the key.
-- R2 bucket CORS: allow PUT only from the admin origin(s); public read only through the media domain.
-- Dev keys can only access `nsbe-media-dev`.
+- Bucket CORS (set with `gcloud storage buckets update --cors-file`): allow PUT only from the admin origin(s). Public read via IAM (`allUsers` → Storage Object Viewer), never public write.
+- Dev HMAC key belongs to a service account that can only access `nsbe-media-dev`.
 
 ## Infra responsibilities
 
-- R2 bucket setup alongside Elmer: CORS rules and the public custom domain (`media.<domain>`).
+- Firebase Storage / GCS bucket setup alongside Elmer: CORS rules, public read access and the public media URL.
 - Cloudflare Pages projects for `apps/web` and `apps/admin`: build settings, env vars, PR previews.
 
 ## Hand-written tasks
@@ -32,14 +32,14 @@ Write these yourself. Your agent will explain and review, but won't write them.
 | DB       | `Media` model + its relation to `LeadershipMember` (`photo_media_id`) | Prisma relations, foreign keys, optional relations, `onDelete` behaviour                               |
 | API      | Presign-upload route (`POST /api/admin/media/upload-url`)             | S3 API concepts (bucket, key, presigning), generating safe object keys, Fastify + zod                  |
 | Security | MIME-type and size validation before issuing a presigned URL          | Why you never trust client input, allow-lists vs block-lists, what an attacker could upload otherwise  |
-| Frontend | Upload component: direct PUT to R2 with a progress bar                | Browser file APIs, `XMLHttpRequest` upload progress (or equivalent), handling errors and retries in UI |
+| Frontend | Upload component: direct PUT to the bucket with a progress bar        | Browser file APIs, `XMLHttpRequest` upload progress (or equivalent), handling errors and retries in UI |
 | Infra    | Cloudflare Pages deploy config for web + admin                        | Static hosting, build commands in a monorepo, environment variables at build time, preview deploys     |
 
 ## Order of work
 
 1. **Week 1:** scaffold with the team; agree on the `packages/shared` media schemas.
 2. **Weeks 2–3:** `Media` model → presign route + validation → upload component → save-media endpoint → media picker → `LeadershipMember` + leadership API → leadership editor + public page.
-3. **Weeks 4–5:** media library page → about page → R2 CORS + public domain.
+3. **Weeks 4–5:** media library page → about page → bucket CORS + public media URL.
 4. **Week 6:** Cloudflare Pages production deploys for web + admin.
 
 ## Depends on / provides

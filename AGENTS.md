@@ -67,19 +67,19 @@ Before saying a task is finished:
 
 Use these. Don't introduce alternatives.
 
-| Need                 | Use                                                                               |
-| -------------------- | --------------------------------------------------------------------------------- |
-| Frontend framework   | React + TypeScript + Vite                                                         |
-| Routing              | React Router                                                                      |
-| Server data fetching | TanStack Query (no `useEffect` + `fetch` for API data)                            |
-| Forms                | react-hook-form + zod (`@hookform/resolvers/zod`)                                 |
-| Styling              | Tailwind CSS                                                                      |
-| Backend              | Fastify + `fastify-type-provider-zod`                                             |
-| Database             | Prisma (PostgreSQL on Neon)                                                       |
-| Auth                 | `@fastify/jwt`, `@fastify/cookie`, `argon2`                                       |
-| Security             | `@fastify/rate-limit`, `@fastify/cors`, `@fastify/helmet`                         |
-| Media                | `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner` (pointed at Cloudflare R2) |
-| Tests                | Vitest                                                                            |
+| Need                 | Use                                                                                                                      |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Frontend framework   | React + TypeScript + Vite                                                                                                |
+| Routing              | React Router                                                                                                             |
+| Server data fetching | TanStack Query (no `useEffect` + `fetch` for API data)                                                                   |
+| Forms                | react-hook-form + zod (`@hookform/resolvers/zod`)                                                                        |
+| Styling              | Tailwind CSS                                                                                                             |
+| Backend              | Fastify + `fastify-type-provider-zod`                                                                                    |
+| Database             | Prisma (PostgreSQL on Neon)                                                                                              |
+| Auth                 | `@fastify/jwt`, `@fastify/cookie`, `argon2`                                                                              |
+| Security             | `@fastify/rate-limit`, `@fastify/cors`, `@fastify/helmet`                                                                |
+| Media                | `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner` (pointed at Firebase Storage / GCS via its S3-compatible XML API) |
+| Tests                | Vitest                                                                                                                   |
 
 ## Conventions
 

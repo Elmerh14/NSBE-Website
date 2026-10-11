@@ -24,7 +24,7 @@ Plus the seed script: `pnpm --filter api seed:admin`.
 
 ## Infra responsibilities
 
-- Provision Neon (`main`, `dev-elmer`, `dev-yahya`, `dev-abduraheem`) and the R2 buckets; share credentials privately.
+- Provision Neon (`main`, `dev-elmer`, `dev-yahya`, `dev-abduraheem`) and the Firebase Storage (GCS) buckets + HMAC keys; share credentials privately.
 - API deployment on Render (Dockerfile + service config).
 - GitHub Actions CI and branch protection on `main`.
 
@@ -42,7 +42,7 @@ Write these yourself. Your agent will explain and review, but won't write them.
 
 ## Order of work
 
-1. **Week 1:** scaffold with the team; provision Neon branches + R2 buckets; CI workflow (hand-written).
+1. **Week 1:** scaffold with the team; provision Neon branches + Firebase Storage buckets; CI workflow (hand-written).
 2. **Weeks 2–3:** `User`/`RefreshToken` models → hashing + login + `requireAuth` → refresh/logout/me → login form + auth state → user management API + page → seed script.
 3. **Weeks 4–5:** hero (API + editor + home section) → site settings → home page layout.
 4. **Week 6:** Render production deploy, domain + cookie check across subdomains.
