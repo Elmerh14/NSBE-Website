@@ -51,3 +51,29 @@ Write these yourself. Your agent will explain and review, but won't write them.
 
 - **Provides** `requireAuth` / `requireRole` and the admin layout and route guard. Yahya and Abduraheem need these early, so land a minimal version first.
 - **Depends on** Yahya's media picker (hero editor) and Abduraheem's events API (home page "upcoming events").
+
+## Progress
+
+A handoff log for whichever agent picks up next, on any machine or tool. Update it at the end of each session, then check `git status` / `git log` in case it's out of date.
+
+**Last updated:** 2026-10-12
+
+| Item                                                                       | Status                                                       | Written by                                |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------ | ----------------------------------------- |
+| `User` model + migration                                                   | Done, applied to `dev-elmer`                                 | Elmer (hand-written)                      |
+| `RefreshToken` model + migration                                           | Done, applied to `dev-elmer`                                 | —                                         |
+| CI workflow                                                                | Done, merged                                                 | Elmer (hand-written)                      |
+| `apps/api/src/modules/auth/password.ts` (`hashPassword`, `verifyPassword`) | Done; lint, typecheck and tests pass. **Not yet committed.** | Elmer (hand-written)                      |
+| `apps/api/src/modules/auth/password.test.ts`                               | Done (6 tests). **Not yet committed.**                       | Agent, from Elmer's draft                 |
+| `POST /api/auth/login`                                                     | **Next up**                                                  | Elmer (hand-written): agents explain only |
+
+**Decisions worth knowing:**
+
+- `hashPassword` sets `type: argon2.argon2id` explicitly, and a test checks the `$argon2id$` prefix.
+- `verifyPassword(hash, password)` deliberately has no `try/catch`. A malformed stored hash throws, so the global error handler logs it and returns a 500, rather than it looking like a wrong password. A test covers this.
+
+**Next steps:**
+
+1. Commit `password.ts` and `password.test.ts`. Use a new branch such as `elmer/password-hashing` if the `elmer/refresh-token-model` PR is already open or merged. In the PR's Hand-written section, list `password.ts`.
+2. Start `POST /api/auth/login`. It's hand-written, so the agent explains Fastify routes, zod validation, cookies and status codes with doc links, and reviews Elmer's code.
+3. Then `requireAuth` (hand-written), then refresh/logout/me.
