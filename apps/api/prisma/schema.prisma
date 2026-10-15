@@ -52,3 +52,44 @@ model RefreshToken {
   @@index([userId])
   @@map("refresh_tokens")
 }
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+model Media {
+  id String @id @default(uuid())
+  s3Key String @map("s3_key")
+  type MediaType
+  mime String 
+  width Int?
+  height Int?
+  alt String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  uploadedBy String? @map("uploaded_by")
+
+  leadershipMembers LeadershipMember[]
+
+  @@map("media")
+}
+
+model LeadershipMember {
+  id String @id @default(uuid())
+  name String 
+  bio String?
+  position String?
+  year Int?
+  major String?
+  linkedin String?
+  sortOrder Int? @map("sort_order")
+  term String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  photoMediaId String? @map("photo_media_id")
+  photoMedia   Media?  @relation(fields: [photoMediaId], references: [id], onDelete: SetNull)
+
+  @@map("leadership_members")
+}
