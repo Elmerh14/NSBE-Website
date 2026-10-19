@@ -1,7 +1,23 @@
+import { Navigate, Route, Routes } from 'react-router';
+
+import { EventsPage } from './features/events/EventsPage';
+
 export function App() {
   return (
-    <main className="flex min-h-screen items-center justify-center">
-      <h1 className="text-3xl font-bold">Hello NSBE</h1>
-    </main>
+    <Routes>
+      <Route path="/events" element={<EventsPage />} />
+      <Route path="/" element={<Navigate to="/events" replace />} />
+      <Route
+        path="*"
+        element={
+          <main className="p-10">
+            <h1 className="text-2xl">Page not found</h1>
+            <a href="/events" className="underline">
+              Go to events
+            </a>
+          </main>
+        }
+      />
+    </Routes>
   );
 }

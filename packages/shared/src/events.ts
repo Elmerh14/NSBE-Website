@@ -48,7 +48,7 @@ export const EventParamsSchema = z.strictObject({
     .string()
     .regex(/^[1-9]\d*$/)
     .transform(Number)
-    .pipe(z.int().positive()),
+    .pipe(z.int().positive().max(2147483647)),
 });
 export type EventParams = z.infer<typeof EventParamsSchema>;
 
@@ -59,3 +59,7 @@ export type EventsQuery = z.infer<typeof EventsQuerySchema>;
 
 export const EventsResponseSchema = z.array(EventSchema);
 export type EventsResponse = z.infer<typeof EventsResponseSchema>;
+
+// DELETE succeeds with HTTP 204 and no response body.
+export const DeleteEventResponseSchema = z.undefined();
+export type DeleteEventResponse = z.infer<typeof DeleteEventResponseSchema>;

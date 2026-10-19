@@ -14,6 +14,7 @@ import { AppError } from './lib/errors';
 import { createPrismaClient } from './lib/prisma';
 import { ACCESS_TOKEN_COOKIE } from './modules/auth/cookies';
 import { authRoutes } from './modules/auth/routes';
+import { adminEventsRoutes } from './modules/events/admin-routes';
 import { eventsRoutes } from './modules/events/routes';
 
 // Fastify's own client errors (bad JSON, payload too large, ...) carry a 4xx status.
@@ -74,6 +75,7 @@ export async function buildApp(config: Config) {
 
   await app.register(authRoutes);
   await app.register(eventsRoutes);
+  await app.register(adminEventsRoutes);
 
   return app;
 }

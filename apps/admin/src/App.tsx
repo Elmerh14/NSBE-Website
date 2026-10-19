@@ -1,10 +1,23 @@
-import { Button } from '@nsbe/ui/components/button';
+import { Navigate, Route, Routes } from 'react-router';
+
+import { AdminEventsPage } from './features/events/AdminEventsPage';
 
 export function App() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-4">
-      <h1 className="text-3xl font-bold">Hello NSBE Admin</h1>
-      <Button>shadcn/ui is wired up</Button>
-    </main>
+    <Routes>
+      <Route path="/events" element={<AdminEventsPage />} />
+      <Route path="/" element={<Navigate to="/events" replace />} />
+      <Route
+        path="*"
+        element={
+          <main className="p-10">
+            <h1 className="text-2xl">Page not found</h1>
+            <a href="/events" className="underline">
+              Go to events
+            </a>
+          </main>
+        }
+      />
+    </Routes>
   );
 }

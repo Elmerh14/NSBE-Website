@@ -60,7 +60,7 @@ describe('event contracts', () => {
 
   it('parses positive integer route IDs and rejects malformed IDs', () => {
     expect(EventParamsSchema.parse({ id: '12' })).toEqual({ id: 12 });
-    for (const id of ['0', '-1', '1.5', '1e2', 'abc', '9007199254740992']) {
+    for (const id of ['0', '-1', '1.5', '1e2', 'abc', '2147483648', '9007199254740992']) {
       expect(EventParamsSchema.safeParse({ id }).success).toBe(false);
     }
   });

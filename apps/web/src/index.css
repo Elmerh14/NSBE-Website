@@ -1,1 +1,35 @@
 @import '@nsbe/ui/globals.css';
+
+.brand-mark {
+  display: grid;
+  grid-auto-flow: column;
+  place-content: center;
+  width: 44px;
+  height: 44px;
+  background: var(--secondary);
+  color: white;
+  font-size: 28px;
+  font-weight: 800;
+  border-radius: 10px;
+}
+.hero-orbit {
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  border: 1px solid rgb(255 255 255 / 9%);
+  border-radius: 50%;
+  right: -180px;
+  top: -220px;
+  box-shadow:
+    0 0 0 75px rgb(255 255 255 / 3%),
+    0 0 0 150px rgb(255 255 255 / 2%);
+  pointer-events: none;
+}
+html {
+  scroll-behavior: smooth;
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
