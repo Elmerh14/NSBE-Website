@@ -12,7 +12,9 @@ import {
 import type { Config } from './config';
 import { AppError } from './lib/errors';
 import { createPrismaClient } from './lib/prisma';
+import { adminRoutes } from './modules/admin/routes';
 import { ACCESS_TOKEN_COOKIE } from './modules/auth/cookies';
+import { toCurrentUser } from './modules/auth/jwt';
 import { authRoutes } from './modules/auth/routes';
 import { eventsRoutes } from './modules/events/routes';
 
@@ -44,10 +46,11 @@ export async function buildApp(config: Config) {
   app.addHook('onClose', () => prisma.$disconnect());
 
   await app.register(cookie);
-  // request.jwtVerify() reads the access token from this cookie.
+  // request.jwtVerify() reads the access token from this cookie and sets request.user to { id, role }.
   await app.register(jwt, {
     secret: config.JWT_SECRET,
     cookie: { cookieName: ACCESS_TOKEN_COOKIE, signed: false },
+    formatUser: toCurrentUser,
   });
 
   app.setErrorHandler((error, request, reply) => {
@@ -74,6 +77,8 @@ export async function buildApp(config: Config) {
 
   await app.register(authRoutes);
   await app.register(eventsRoutes);
+  // All /api/admin/* routes live inside this plugin, behind requireAuth.
+  await app.register(adminRoutes);
 
   return app;
 }

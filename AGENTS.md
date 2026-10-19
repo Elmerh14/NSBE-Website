@@ -90,6 +90,7 @@ Use these. Don't introduce alternatives.
 - Every request body, query, params and response shape is a **zod schema in `packages/shared`**. Both the API and the frontends import from there. Never hand-write a duplicate type.
 - Name schemas `<Thing>Schema` and export the inferred type as `<Thing>`, e.g. `EventSchema` and `type Event = z.infer<typeof EventSchema>`.
 - Public routes: `/api/<resource>`. Admin routes: `/api/admin/<resource>`, always behind `requireAuth`. User management also needs `requireRole('SUPER_ADMIN')`.
+- Put each feature's admin routes in their own plugin and add it to `ADMIN_PLUGINS` in `apps/api/src/modules/admin/routes.ts`. That plugin runs `requireAuth` on every route inside it, and `request.user` is `{ id, role }`. Never register an `/api/admin` route anywhere else.
 - Errors come back as `{ error: { code: string, message: string } }` with an accurate HTTP status.
 
 ### Folder structure

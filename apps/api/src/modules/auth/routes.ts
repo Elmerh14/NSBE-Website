@@ -2,7 +2,8 @@ import { AuthResponseSchema, LoginRequestSchema } from '@nsbe/shared';
 import type { FastifyPluginCallbackZod } from 'fastify-type-provider-zod';
 
 import { ACCESS_TOKEN_COOKIE } from './cookies';
-import { login } from './service';
+import { requireAuth } from './require-auth';
+import { getCurrentUser, login } from './service';
 
 const opts = {
   schema: {
@@ -33,5 +34,12 @@ export const authRoutes: FastifyPluginCallbackZod = (app, _opts, done) => {
 
     return { user };
   });
+
+  // The admin app calls this on load to find out who is logged in (401 = show the login page).
+  app.get(
+    '/api/auth/me',
+    { onRequest: requireAuth, schema: { response: { 200: AuthResponseSchema } } },
+    async (request) => ({ user: await getCurrentUser(app.prisma, request.user.id) }),
+  );
   done();
 };
