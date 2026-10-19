@@ -56,19 +56,21 @@ Write these yourself. Your agent will explain and review, but won't write them.
 
 A handoff log for whichever agent picks up next, on any machine or tool. Update it at the end of each session, then check `git status` / `git log` in case it's out of date.
 
-**Last updated:** 2026-10-18
+**Last updated:** 2026-10-19
 
-| Item                                                                       | Status                                    | Written by                |
-| -------------------------------------------------------------------------- | ----------------------------------------- | ------------------------- |
-| `User` model + migration                                                   | Done, applied to `dev-elmer`              | Elmer (hand-written)      |
-| `RefreshToken` model + migration                                           | Done, applied to `dev-elmer`              | —                         |
-| CI workflow                                                                | Done, merged                              | Elmer (hand-written)      |
-| `apps/api/src/modules/auth/password.ts` (`hashPassword`, `verifyPassword`) | Done, merged (PR #7)                      | Elmer (hand-written)      |
-| `apps/api/src/modules/auth/password.test.ts`                               | Done (6 tests), merged (PR #7)            | Agent, from Elmer's draft |
-| `POST /api/auth/login` (`modules/auth/routes.ts` + `service.ts`)           | Done on `elmer/login-route`, not yet a PR | Elmer (hand-written)      |
-| `modules/auth/routes.test.ts` (9 tests, mocked `findUnique`)               | Done on `elmer/login-route`               | Agent                     |
-| Seed script `seed:admin` (`src/scripts/`) + tests                          | Done, run on `dev-elmer`; login verified  | Agent                     |
-| `requireAuth` preHandler                                                   | **Next up**                               | Elmer (hand-written)      |
+| Item                                                                                                   | Status                                   | Written by                |
+| ------------------------------------------------------------------------------------------------------ | ---------------------------------------- | ------------------------- |
+| `User` model + migration                                                                               | Done, applied to `dev-elmer`             | Elmer (hand-written)      |
+| `RefreshToken` model + migration                                                                       | Done, applied to `dev-elmer`             | —                         |
+| CI workflow                                                                                            | Done, merged                             | Elmer (hand-written)      |
+| `apps/api/src/modules/auth/password.ts` (`hashPassword`, `verifyPassword`)                             | Done, merged (PR #7)                     | Elmer (hand-written)      |
+| `apps/api/src/modules/auth/password.test.ts`                                                           | Done (6 tests), merged (PR #7)           | Agent, from Elmer's draft |
+| `POST /api/auth/login` (`modules/auth/routes.ts` + `service.ts`)                                       | Done, merged (PR #8)                     | Elmer (hand-written)      |
+| `modules/auth/routes.test.ts` (9 tests, mocked `findUnique`)                                           | Done, merged (PR #8)                     | Agent                     |
+| Seed script `seed:admin` (`src/scripts/`) + tests                                                      | Done, run on `dev-elmer`; login verified | Agent                     |
+| `requireAuth` (`modules/auth/require-auth.ts`)                                                         | Done on `elmer/requireAuth`              | Elmer (hand-written)      |
+| `request.user` typing (`jwt.ts`), `GET /api/auth/me`, admin plugin (`modules/admin/routes.ts`) + tests | Done on `elmer/requireAuth`              | Agent                     |
+| `requireRole`, then refresh/logout/change-password                                                     | **Next up**                              | Agent                     |
 
 **Decisions worth knowing:**
 
@@ -78,11 +80,14 @@ A handoff log for whichever agent picks up next, on any machine or tool. Update 
 - The access JWT payload is `{ sub: String(user.id), role }`, 15 min. `sub` is a string, so `requireAuth` must convert it back to a number for Prisma.
 - `authRoutes` is a callback-style plugin (`FastifyPluginCallbackZod` + `done()`), because the `require-await` lint rule rejects an async plugin with no `await`.
 - `authRoutes` must be registered **after** `setErrorHandler` in `buildApp`: plugins registered earlier don't get the custom error handler. The route tests fail if this order breaks.
+- `requireAuth` runs as an `onRequest` hook (before body parsing), so logged-out callers get 401 before any validation error. `formatUser` turns the token into `request.user = { id: number, role }`.
+- All `/api/admin` routes go in `ADMIN_PLUGINS` (`modules/admin/routes.ts`), which applies `requireAuth` to everything inside it.
 - `ACCESS_TOKEN_COOKIE` lives in `modules/auth/cookies.ts`, not `app.ts`, to avoid a circular import.
 - Route tests mock `app.prisma.user.findUnique` because CI has no database.
 - `seed:admin` generates a random temporary password, prints it once, and sets `mustChangePassword: true`. It refuses an email that already exists. It isn't part of the `tsup` build yet (production use is a Week 6 deploy question).
 
 **Next steps:**
 
-1. Open the PR for `elmer/login-route`, listing `routes.ts` and `service.ts` as hand-written.
-2. Then `requireAuth` (hand-written), then refresh/logout/me.
+1. Open the PR for `elmer/requireAuth` (`require-auth.ts` is hand-written; the rest is agent-written). Tell Yahya and Abduraheem to add admin routes via `ADMIN_PLUGINS`.
+2. `requireRole`, refresh/logout, change-password (and blocking admin routes while `mustChangePassword`).
+3. Last hand-written task: admin login form + auth state.
