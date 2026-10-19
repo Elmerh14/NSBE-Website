@@ -5,23 +5,23 @@ import { z } from 'zod';
  *
  * Flow:
  * 1. Admin asks for a presigned upload URL (mime + size).
- * 2. Browser PUTs the file straight to R2.
+ * 2. Browser PUTs the file straight to Filebase.
  * 3. Admin saves a Media row so the rest of the app can reference it.
  */
 
 export const MediaTypeSchema = z.enum(['IMAGE', 'VIDEO']);
 export type MediaType = z.infer<typeof MediaTypeSchema>;
 
-/** One stored file in R2, tracked in the database. */
+/** One stored file in Filebase, tracked in the database. */
 export const MediaSchema = z.object({
-  id: z.uuid(),
+  id: z.number().int(),
   s3Key: z.string().min(1),
   type: MediaTypeSchema,
   mime: z.string().min(1),
   width: z.number().int().positive().nullable(),
   height: z.number().int().positive().nullable(),
   alt: z.string().nullable(),
-  uploadedBy: z.uuid().nullable(),
+  uploadedById: z.number().int().nullable(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });
@@ -69,8 +69,8 @@ export const MediaListResponseSchema = z.object({
 });
 export type MediaListResponse = z.infer<typeof MediaListResponseSchema>;
 
-/** Params for DELETE /api/admin/media/:id */
+/** Params for DELETE /api/admin/media/:id. Route params arrive as strings. */
 export const MediaIdParamsSchema = z.object({
-  id: z.uuid(),
+  id: z.coerce.number().int().positive(),
 });
 export type MediaIdParams = z.infer<typeof MediaIdParamsSchema>;
