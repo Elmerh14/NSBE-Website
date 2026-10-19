@@ -35,6 +35,7 @@ model User {
   updatedAt          DateTime @updatedAt @map("updated_at")
 
   refreshTokens RefreshToken[]
+  uploadedMedia Media[]
 
   @@map("users")
 }
@@ -51,4 +52,47 @@ model RefreshToken {
 
   @@index([userId])
   @@map("refresh_tokens")
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+model Media {
+  id           Int       @id @default(autoincrement())
+  s3Key        String    @unique @map("s3_key")
+  type         MediaType
+  mime         String
+  width        Int?
+  height       Int?
+  alt          String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  uploadedById Int?      @map("uploaded_by")
+
+  uploadedBy        User?              @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  leadershipMembers LeadershipMember[]
+
+  @@map("media")
+}
+
+model LeadershipMember {
+  id        Int      @id @default(autoincrement())
+  name      String
+  bio       String?
+  position  String?
+  year      Int?
+  major     String?
+  linkedin  String?
+  sortOrder Int      @default(0) @map("sort_order")
+  term      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  photoMediaId Int?   @map("photo_media_id")
+  photoMedia   Media? @relation(fields: [photoMediaId], references: [id], onDelete: SetNull)
+
+  @@index([photoMediaId])
+  @@map("leadership_members")
 }
