@@ -98,10 +98,14 @@ Filebase offers an S3-compatible API, so the API uses the AWS SDK:
 - Passwords hashed with **argon2id**. The database stores only `password_hash`, never the password.
 - **Tokens**
   - Access JWT, about 15 minutes, in an `httpOnly; Secure; SameSite=Strict` cookie.
-  - Refresh token, about 7 days, in an httpOnly cookie. Stored **hashed** in `refresh_tokens` and rotated on every refresh.
+  - Refresh token, about 7 days, in an httpOnly cookie sent only to `/api/auth/*`. Stored **hashed** (SHA-256) in `refresh_tokens` and rotated on every refresh: the old row gets `revoked_at`, a new row is created.
+  - Replaying an already-rotated token is treated as theft and ends all of that user's sessions. Logout, password changes and resets **delete** rows instead, so `revoked_at` only ever means "rotated".
   - Tokens never go in `localStorage` (any script on the page could read them).
   - Because refresh tokens live in the database, logging out or deactivating a user cuts access off immediately.
-- `@fastify/jwt` + `@fastify/cookie`; `requireAuth` / `requireRole` preHandler hooks.
+- `@fastify/jwt` + `@fastify/cookie`. Hooks, all run as `onRequest` (before the body is parsed):
+  - `requireAuth` verifies the access token and sets `request.user = { id, role }`.
+  - Every `/api/admin` route is registered inside `modules/admin/routes.ts`, which runs `requireAuth` and then `checkAccount` (re-reads the user: inactive → 401, `must_change_password` → 403 `PASSWORD_CHANGE_REQUIRED`, role taken from the database).
+  - `requireRole('SUPER_ADMIN')` is added per route (→ 403 `FORBIDDEN`).
 - Login is rate limited with `@fastify/rate-limit`.
 
 ### Roles

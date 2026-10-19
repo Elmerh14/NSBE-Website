@@ -68,9 +68,11 @@ A handoff log for whichever agent picks up next, on any machine or tool. Update 
 | `POST /api/auth/login` (`modules/auth/routes.ts` + `service.ts`)                                       | Done, merged (PR #8)                     | Elmer (hand-written)      |
 | `modules/auth/routes.test.ts` (9 tests, mocked `findUnique`)                                           | Done, merged (PR #8)                     | Agent                     |
 | Seed script `seed:admin` (`src/scripts/`) + tests                                                      | Done, run on `dev-elmer`; login verified | Agent                     |
-| `requireAuth` (`modules/auth/require-auth.ts`)                                                         | Done on `elmer/requireAuth`              | Elmer (hand-written)      |
-| `request.user` typing (`jwt.ts`), `GET /api/auth/me`, admin plugin (`modules/admin/routes.ts`) + tests | Done on `elmer/requireAuth`              | Agent                     |
-| `requireRole`, then refresh/logout/change-password                                                     | **Next up**                              | Agent                     |
+| `requireAuth` (`modules/auth/require-auth.ts`)                                                         | Done, merged (PR #11)                    | Elmer (hand-written)      |
+| `request.user` typing (`jwt.ts`), `GET /api/auth/me`, admin plugin (`modules/admin/routes.ts`) + tests | Done, merged (PR #11)                    | Agent                     |
+| Refresh rotation, logout, change-password, `checkAccount`, `requireRole` + tests                       | Done on `elmer/auth-session`             | Agent                     |
+| Login rate limiting (`@fastify/rate-limit`)                                                            | Not started                              | Agent                     |
+| Admin login form + auth state                                                                          | **Next up**                              | Elmer (hand-written)      |
 
 **Decisions worth knowing:**
 
@@ -82,12 +84,15 @@ A handoff log for whichever agent picks up next, on any machine or tool. Update 
 - `authRoutes` must be registered **after** `setErrorHandler` in `buildApp`: plugins registered earlier don't get the custom error handler. The route tests fail if this order breaks.
 - `requireAuth` runs as an `onRequest` hook (before body parsing), so logged-out callers get 401 before any validation error. `formatUser` turns the token into `request.user = { id: number, role }`.
 - All `/api/admin` routes go in `ADMIN_PLUGINS` (`modules/admin/routes.ts`), which applies `requireAuth` to everything inside it.
+- Refresh tokens: SHA-256 hashed, cookie path `/api/auth`. Rotation sets `revokedAt`; logout/password change **delete** rows, so a reused token with `revokedAt` set means theft → all of that user's sessions are deleted. Rotated rows are never cleaned up yet.
+- Login's token/cookie lines moved into `setSessionCookies` (`session.ts`), shared with refresh and change-password.
+- Wrong current password on change-password is **400** `INVALID_CURRENT_PASSWORD`, not 401, because the admin app treats 401 as logged out.
 - `ACCESS_TOKEN_COOKIE` lives in `modules/auth/cookies.ts`, not `app.ts`, to avoid a circular import.
 - Route tests mock `app.prisma.user.findUnique` because CI has no database.
 - `seed:admin` generates a random temporary password, prints it once, and sets `mustChangePassword: true`. It refuses an email that already exists. It isn't part of the `tsup` build yet (production use is a Week 6 deploy question).
 
 **Next steps:**
 
-1. Open the PR for `elmer/requireAuth` (`require-auth.ts` is hand-written; the rest is agent-written). Tell Yahya and Abduraheem to add admin routes via `ADMIN_PLUGINS`.
-2. `requireRole`, refresh/logout, change-password (and blocking admin routes while `mustChangePassword`).
-3. Last hand-written task: admin login form + auth state.
+1. Try refresh/logout/change-password by hand, then open the PR for `elmer/auth-session` (all agent-written; note that the login handler's cookie lines moved into `setSessionCookies`).
+2. Login rate limiting (the architecture doc says login is rate limited; it isn't yet).
+3. Last hand-written task: admin login form + auth state. The frontend needs to: call `/api/auth/me` on load; on any 401, call `/api/auth/refresh` once (de-duplicated) and retry; on 403 `PASSWORD_CHANGE_REQUIRED`, show the change-password page.

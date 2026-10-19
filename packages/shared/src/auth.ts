@@ -29,3 +29,21 @@ export const AuthResponseSchema = z.object({
   user: AuthUserSchema,
 });
 export type AuthResponse = z.infer<typeof AuthResponseSchema>;
+
+// Rules for any password a user chooses. Length beats complexity rules (NIST SP 800-63B).
+export const NewPasswordSchema = z
+  .string()
+  .min(12, 'Use at least 12 characters')
+  .max(256, 'Use at most 256 characters');
+
+// Body of POST /api/auth/change-password. Also used by the admin's change-password form.
+export const ChangePasswordRequestSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Enter your current password').max(256),
+    newPassword: NewPasswordSchema,
+  })
+  .refine((body) => body.newPassword !== body.currentPassword, {
+    message: 'Choose a password different from your current one',
+    path: ['newPassword'],
+  });
+export type ChangePasswordRequest = z.infer<typeof ChangePasswordRequestSchema>;

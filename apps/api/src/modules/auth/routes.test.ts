@@ -41,6 +41,8 @@ describe('POST /api/auth/login', () => {
   beforeEach(async () => {
     app = await buildApp(TEST_CONFIG);
     await app.ready();
+    // A successful login also stores a refresh token (covered in session.test.ts).
+    vi.spyOn(app.prisma.refreshToken, 'create').mockResolvedValue({} as never);
   });
 
   afterEach(async () => {
