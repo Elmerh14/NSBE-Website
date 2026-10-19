@@ -5,6 +5,11 @@ const ConfigSchema = z.object({
   HOST: z.string().default('0.0.0.0'),
   PORT: z.coerce.number().int().positive().default(3000),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
+  // Neon pooled connection string, used by the app at runtime.
+  DATABASE_URL: z.url({
+    protocol: /^postgres(ql)?$/,
+    error: 'DATABASE_URL must be a postgres:// URL',
+  }),
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
 });
 

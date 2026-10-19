@@ -11,8 +11,9 @@ import {
 
 import type { Config } from './config';
 import { AppError } from './lib/errors';
-
-export const ACCESS_TOKEN_COOKIE = 'access_token';
+import { createPrismaClient } from './lib/prisma';
+import { ACCESS_TOKEN_COOKIE } from './modules/auth/cookies';
+import { authRoutes } from './modules/auth/routes';
 
 // Fastify's own client errors (bad JSON, payload too large, ...) carry a 4xx status.
 function isFastifyClientError(error: unknown): error is FastifyError {
@@ -35,6 +36,11 @@ export async function buildApp(config: Config) {
   // Validate requests and serialize responses with the zod schemas from @nsbe/shared.
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
+
+  // One client (and connection pool) for the whole app. Routes use `app.prisma` and pass it to services.
+  const prisma = createPrismaClient(config.DATABASE_URL);
+  app.decorate('prisma', prisma);
+  app.addHook('onClose', () => prisma.$disconnect());
 
   await app.register(cookie);
   // request.jwtVerify() reads the access token from this cookie.
@@ -64,6 +70,8 @@ export async function buildApp(config: Config) {
   );
 
   app.get('/api/health', () => ({ status: 'ok' }));
+
+  await app.register(authRoutes);
 
   return app;
 }
