@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 
 import { apiFetch } from '../../lib/api';
-import { CURRENT_USER_QUERY_KEY } from './queryKeys';
+import { CURRENT_USER_QUERY_KEY } from './query-keys';
 
 export function useLogin() {
   const queryClient = useQueryClient();
