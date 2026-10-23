@@ -36,14 +36,30 @@ export const NewPasswordSchema = z
   .min(12, 'Use at least 12 characters')
   .max(256, 'Use at most 256 characters');
 
-// Body of POST /api/auth/change-password. Also used by the admin's change-password form.
-export const ChangePasswordRequestSchema = z
-  .object({
-    currentPassword: z.string().min(1, 'Enter your current password').max(256),
-    newPassword: NewPasswordSchema,
-  })
-  .refine((body) => body.newPassword !== body.currentPassword, {
-    message: 'Choose a password different from your current one',
-    path: ['newPassword'],
-  });
+const ChangePasswordFieldsSchema = z.object({
+  currentPassword: z.string().min(1, 'Enter your current password').max(256),
+  newPassword: NewPasswordSchema,
+});
+
+const newPasswordDiffers = (body: { currentPassword: string; newPassword: string }) =>
+  body.newPassword !== body.currentPassword;
+const NEW_PASSWORD_SAME_MESSAGE = 'Choose a password different from your current one';
+
+// Body of POST /api/auth/change-password.
+export const ChangePasswordRequestSchema = ChangePasswordFieldsSchema.refine(newPasswordDiffers, {
+  message: NEW_PASSWORD_SAME_MESSAGE,
+  path: ['newPassword'],
+});
 export type ChangePasswordRequest = z.infer<typeof ChangePasswordRequestSchema>;
+
+// The admin's change-password form: the request body plus a "type it again" field,
+// because a typo in a new password locks the user out until a super admin resets it.
+export const ChangePasswordFormSchema = ChangePasswordFieldsSchema.extend({
+  confirmPassword: z.string(),
+})
+  .refine(newPasswordDiffers, { message: NEW_PASSWORD_SAME_MESSAGE, path: ['newPassword'] })
+  .refine((form) => form.confirmPassword === form.newPassword, {
+    message: 'The passwords do not match',
+    path: ['confirmPassword'],
+  });
+export type ChangePasswordForm = z.infer<typeof ChangePasswordFormSchema>;

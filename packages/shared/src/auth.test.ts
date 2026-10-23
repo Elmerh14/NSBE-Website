@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { AuthResponseSchema, ChangePasswordRequestSchema, LoginRequestSchema } from './auth';
+import {
+  AuthResponseSchema,
+  ChangePasswordFormSchema,
+  ChangePasswordRequestSchema,
+  LoginRequestSchema,
+} from './auth';
 
 describe('LoginRequestSchema', () => {
   it('trims and lowercases the email', () => {
@@ -49,5 +54,33 @@ describe('ChangePasswordRequestSchema', () => {
     ],
   ])('rejects %s', (_, body) => {
     expect(ChangePasswordRequestSchema.safeParse(body).success).toBe(false);
+  });
+});
+
+describe('ChangePasswordFormSchema', () => {
+  const form = {
+    currentPassword: 'old-password',
+    newPassword: 'a-new-long-password',
+    confirmPassword: 'a-new-long-password',
+  };
+
+  it('accepts a matching confirmation', () => {
+    expect(ChangePasswordFormSchema.parse(form)).toEqual(form);
+  });
+
+  it('rejects a confirmation that does not match, on the confirmPassword field', () => {
+    const result = ChangePasswordFormSchema.safeParse({
+      ...form,
+      confirmPassword: 'something-else',
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.map((issue) => issue.path)).toEqual([['confirmPassword']]);
+  });
+
+  it('keeps the request rules, such as a different new password', () => {
+    const same = { currentPassword: 'same-password-123', newPassword: 'same-password-123' };
+    expect(
+      ChangePasswordFormSchema.safeParse({ ...same, confirmPassword: same.newPassword }).success,
+    ).toBe(false);
   });
 });

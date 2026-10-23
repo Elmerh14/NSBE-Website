@@ -60,27 +60,27 @@ A handoff log for whichever agent picks up next, on any machine or tool. Update 
 
 **Last updated:** 2026-10-23
 
-| Item                                                                                                                      | Status                                                   | Written by                |
-| ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- | ------------------------- |
-| `User` model + migration                                                                                                  | Done, applied to `dev-elmer`                             | Elmer (hand-written)      |
-| `RefreshToken` model + migration                                                                                          | Done, applied to `dev-elmer`                             | —                         |
-| CI workflow                                                                                                               | Done, merged                                             | Elmer (hand-written)      |
-| `apps/api/src/modules/auth/password.ts` (`hashPassword`, `verifyPassword`)                                                | Done, merged (PR #7)                                     | Elmer (hand-written)      |
-| `apps/api/src/modules/auth/password.test.ts`                                                                              | Done (6 tests), merged (PR #7)                           | Agent, from Elmer's draft |
-| `POST /api/auth/login` (`modules/auth/routes.ts` + `service.ts`)                                                          | Done, merged (PR #8)                                     | Elmer (hand-written)      |
-| `modules/auth/routes.test.ts` (9 tests, mocked `findUnique`)                                                              | Done, merged (PR #8)                                     | Agent                     |
-| Seed script `seed:admin` (`src/scripts/`) + tests                                                                         | Done, run on `dev-elmer`; login verified                 | Agent                     |
-| `requireAuth` (`modules/auth/require-auth.ts`)                                                                            | Done, merged (PR #11)                                    | Elmer (hand-written)      |
-| `request.user` typing (`jwt.ts`), `GET /api/auth/me`, admin plugin (`modules/admin/routes.ts`) + tests                    | Done, merged (PR #11)                                    | Agent                     |
-| Refresh rotation, logout, change-password, `checkAccount`, `requireRole` + tests                                          | Done, merged (PR #12)                                    | Agent                     |
-| Login rate limiting                                                                                                       | Owned by Abduraheem (his hand-written task)              | —                         |
-| Admin `lib/api.ts` (`apiFetch`, 401 → one shared refresh → retry) + tests, `query-client.ts`, login/dashboard page shells | Done, merged (PR #13)                                    | Agent                     |
-| Login form wired to the API (`LoginForm.tsx`, `useLogin.ts`)                                                              | Done, merged (PR #13); browser-tested                    | Elmer (hand-written)      |
-| Current-user query (`useCurrentUser.ts`, `query-keys.ts`)                                                                 | Done on `elmer/proteceted-route-wrapper`; browser-tested | Elmer (hand-written)      |
-| Protected-route wrapper (`RequireAuth.tsx`) + layout route in `router.tsx`                                                | Done on `elmer/proteceted-route-wrapper`; browser-tested | Elmer (hand-written)      |
-| Login form extras: show/hide password + Caps Lock warning                                                                 | Not started                                              | Elmer (hand-written)      |
-| Change-password form (`ChangePasswordPage.tsx`)                                                                           | Placeholder only                                         | Agent                     |
-| Logout button                                                                                                             | Not started                                              | Agent                     |
+| Item                                                                                                                             | Status                                                       | Written by                |
+| -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------- |
+| `User` model + migration                                                                                                         | Done, applied to `dev-elmer`                                 | Elmer (hand-written)      |
+| `RefreshToken` model + migration                                                                                                 | Done, applied to `dev-elmer`                                 | —                         |
+| CI workflow                                                                                                                      | Done, merged                                                 | Elmer (hand-written)      |
+| `apps/api/src/modules/auth/password.ts` (`hashPassword`, `verifyPassword`)                                                       | Done, merged (PR #7)                                         | Elmer (hand-written)      |
+| `apps/api/src/modules/auth/password.test.ts`                                                                                     | Done (6 tests), merged (PR #7)                               | Agent, from Elmer's draft |
+| `POST /api/auth/login` (`modules/auth/routes.ts` + `service.ts`)                                                                 | Done, merged (PR #8)                                         | Elmer (hand-written)      |
+| `modules/auth/routes.test.ts` (9 tests, mocked `findUnique`)                                                                     | Done, merged (PR #8)                                         | Agent                     |
+| Seed script `seed:admin` (`src/scripts/`) + tests                                                                                | Done, run on `dev-elmer`; login verified                     | Agent                     |
+| `requireAuth` (`modules/auth/require-auth.ts`)                                                                                   | Done, merged (PR #11)                                        | Elmer (hand-written)      |
+| `request.user` typing (`jwt.ts`), `GET /api/auth/me`, admin plugin (`modules/admin/routes.ts`) + tests                           | Done, merged (PR #11)                                        | Agent                     |
+| Refresh rotation, logout, change-password, `checkAccount`, `requireRole` + tests                                                 | Done, merged (PR #12)                                        | Agent                     |
+| Login rate limiting                                                                                                              | Owned by Abduraheem (his hand-written task)                  | —                         |
+| Admin `lib/api.ts` (`apiFetch`, 401 → one shared refresh → retry) + tests, `query-client.ts`, login/dashboard page shells        | Done, merged (PR #13)                                        | Agent                     |
+| Login form wired to the API (`LoginForm.tsx`, `useLogin.ts`)                                                                     | Done, merged (PR #13); browser-tested                        | Elmer (hand-written)      |
+| Current-user query (`useCurrentUser.ts`, `query-keys.ts`)                                                                        | Done, merged (PR #14); browser-tested                        | Elmer (hand-written)      |
+| Protected-route wrapper (`RequireAuth.tsx`) + layout route in `router.tsx`                                                       | Done, merged (PR #14); browser-tested                        | Elmer (hand-written)      |
+| Login form extras: show/hide password + Caps Lock warning                                                                        | Not started                                                  | Elmer (hand-written)      |
+| Change-password form (`ChangePasswordForm.tsx`, `useChangePassword.ts`, `ChangePasswordFormSchema` in shared)                    | Done on `elmer/auth-frontend-finish`; not yet browser-tested | Agent                     |
+| Logout (`useLogout.ts`), admin header (`features/layout/AdminLayout.tsx`), expired-session handling in `query-client.ts` + tests | Done on `elmer/auth-frontend-finish`; not yet browser-tested | Agent                     |
 
 **Decisions worth knowing:**
 
@@ -99,14 +99,14 @@ A handoff log for whichever agent picks up next, on any machine or tool. Update 
 - Route tests mock `app.prisma.user.findUnique` because CI has no database.
 - Admin app: the cached current user lives under `CURRENT_USER_QUERY_KEY` (`['auth', 'me']`, in `features/auth/query-keys.ts`) and holds the `AuthUser` itself, not `{ user }`. `useLogin` writes it with `setQueryData` on success; `useCurrentUser` reads `GET /api/auth/me` and returns `.user`. Both must keep that shape.
 - `RequireAuth` is a pathless layout route in `router.tsx`. Every admin page goes in its `children`; `/login` and `/change-password` stay outside. It checks pending → error (any error → `/login`) → `mustChangePassword` → `<Outlet />`. It only checks "logged in"; both roles may use the admin app. `SUPER_ADMIN`-only UI (user management) needs its own check.
+- `ChangePasswordPage` is outside `RequireAuth` (which redirects there) and does its own logged-in check. Wrong current password shows on the current-password field. The form's "confirm new password" lives only in `ChangePasswordFormSchema`; the API body is still `ChangePasswordRequestSchema`.
+- Logout only leaves the app once `POST /api/auth/logout` succeeds (on failure it shows an error, so the user never looks logged out while the session still works). It then goes to `/login` and calls `queryClient.clear()`.
+- Expired session: a 401 that reaches TanStack (after `apiFetch`'s refresh failed) invalidates `CURRENT_USER_QUERY_KEY`, so `/me` fails and `RequireAuth` redirects. The current-user query's own 401 is skipped to avoid a loop.
 - `seed:admin` generates a random temporary password, prints it once, and sets `mustChangePassword: true`. It refuses an email that already exists. It isn't part of the `tsup` build yet (production use is a Week 6 deploy question).
 
 **Next steps:**
 
-1. Commit and open the PR for `elmer/proteceted-route-wrapper` (all of it is hand-written by Elmer except the `query-keys.ts` rename).
+1. Browser-test `elmer/auth-frontend-finish` (temporary-password flow, voluntary password change, sign out, expired session), then open its PR.
 2. Login rate limiting is Abduraheem's hand-written task. Tell him the auth routes are ready for it, and to also cover `/api/auth/change-password` and `/api/auth/refresh`.
-3. Logout: call `POST /api/auth/logout`, then clear `CURRENT_USER_QUERY_KEY` (otherwise `RequireAuth` still sees a user) and go to `/login`.
-4. Session expiring while the app is open: the cached user stays, so `RequireAuth` doesn't notice. Make a final 401 (after the failed refresh) clear the cached user, e.g. in a `QueryCache`/`MutationCache` `onError` in `query-client.ts`.
-5. Change-password form on `ChangePasswordPage`, and make that page require login (but not redirect on `mustChangePassword`).
-6. Hand-written: login form extras (show/hide password + Caps Lock warning).
-7. Then user management (API + Users page, `SUPER_ADMIN` only).
+3. Hand-written: login form extras (show/hide password + Caps Lock warning).
+4. User management (API + Users page, `SUPER_ADMIN` only; hide the Users link for `USER`).

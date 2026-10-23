@@ -19,6 +19,7 @@ export function LoginForm() {
 
   return (
     <form
+      className="flex flex-col gap-4"
       onSubmit={(e) =>
         void handleSubmit((data) => {
           login.mutate(data);
@@ -26,25 +27,31 @@ export function LoginForm() {
       }
       noValidate
     >
-      <Label htmlFor="email">Email</Label>
-      <Input id="email" type="email" autoComplete="username" {...register('email')} />
-      {errors.email?.message && (
-        <p role="alert" className="text-destructive text-sm">
-          {errors.email.message}
-        </p>
-      )}
-      <Label htmlFor="password">Password</Label>
-      <Input
-        id="password"
-        type="password"
-        autoComplete="current-password"
-        {...register('password')}
-      />
-      {errors.password?.message && (
-        <p role="alert" className="text-destructive text-sm">
-          {errors.password.message}
-        </p>
-      )}
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="email">Email</Label>
+        <Input id="email" type="email" autoComplete="username" {...register('email')} />
+        {errors.email?.message && (
+          <p role="alert" className="text-destructive text-sm">
+            {errors.email.message}
+          </p>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="password">Password</Label>
+        <Input
+          id="password"
+          type="password"
+          autoComplete="current-password"
+          {...register('password')}
+        />
+        {errors.password?.message && (
+          <p role="alert" className="text-destructive text-sm">
+            {errors.password.message}
+          </p>
+        )}
+      </div>
+
       {login.error && (
         <p role="alert" className="text-destructive text-sm">
           {isApiError(login.error, 'INVALID_CREDENTIALS')
