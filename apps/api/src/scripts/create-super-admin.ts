@@ -1,10 +1,9 @@
-import { randomBytes } from 'node:crypto';
-
 import { type AuthUser, LoginRequestSchema } from '@nsbe/shared';
 import { z } from 'zod';
 
 import type { PrismaClient } from '../generated/prisma/client';
 import { hashPassword } from '../modules/auth/password';
+import { generateTemporaryPassword } from '../modules/users/temporary-password';
 
 export const SuperAdminInputSchema = z.object({
   // Same normalisation as login (trim + lowercase), so the account can always log in.
@@ -17,11 +16,6 @@ export type CreatedSuperAdmin = {
   user: AuthUser;
   temporaryPassword: string;
 };
-
-// 18 random bytes -> 24 URL-safe characters (144 bits): not guessable, easy to copy.
-function generateTemporaryPassword(): string {
-  return randomBytes(18).toString('base64url');
-}
 
 // Creates a SUPER_ADMIN with a random temporary password they must change on first login.
 // The plain password is returned once so the caller can show it; only the hash is stored.
