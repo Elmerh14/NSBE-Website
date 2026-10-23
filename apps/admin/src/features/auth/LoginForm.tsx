@@ -5,7 +5,12 @@ import { Input } from '@nsbe/ui/components/input';
 import { Label } from '@nsbe/ui/components/label';
 import { useForm } from 'react-hook-form';
 
+import { isApiError } from '../../lib/api';
+import { useLogin } from './useLogin';
+
 export function LoginForm() {
+  const login = useLogin();
+
   const {
     register,
     handleSubmit,
@@ -16,14 +21,18 @@ export function LoginForm() {
     <form
       onSubmit={(e) =>
         void handleSubmit((data) => {
-          console.log(data);
+          login.mutate(data);
         })(e)
       }
       noValidate
     >
       <Label htmlFor="email">Email</Label>
       <Input id="email" type="email" autoComplete="username" {...register('email')} />
-      {errors.email?.message && <p>{errors.email.message}</p>}
+      {errors.email?.message && (
+        <p role="alert" className="text-destructive text-sm">
+          {errors.email.message}
+        </p>
+      )}
       <Label htmlFor="password">Password</Label>
       <Input
         id="password"
@@ -31,8 +40,21 @@ export function LoginForm() {
         autoComplete="current-password"
         {...register('password')}
       />
-      {errors.password?.message && <p>{errors.password.message}</p>}
-      <Button type="submit">Submit</Button>
+      {errors.password?.message && (
+        <p role="alert" className="text-destructive text-sm">
+          {errors.password.message}
+        </p>
+      )}
+      {login.error && (
+        <p role="alert" className="text-destructive text-sm">
+          {isApiError(login.error, 'INVALID_CREDENTIALS')
+            ? 'Invalid email or password'
+            : 'Something wrong has occurred try again'}
+        </p>
+      )}
+      <Button type="submit" disabled={login.isPending && true}>
+        Submit
+      </Button>
     </form>
   );
 }
