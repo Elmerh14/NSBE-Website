@@ -32,13 +32,15 @@ Plus the seed script: `pnpm --filter api seed:admin`.
 
 Write these yourself. Your agent will explain and review, but won't write them.
 
-| Layer    | Task                                                                                 | What you'll learn                                                                                     |
-| -------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
-| DB       | `User` model in `schema.prisma` + the first migration                                | Prisma schema syntax, enums, unique constraints, `@@map`, how migrations are generated and applied    |
-| API      | `POST /api/auth/login` route                                                         | Fastify routing, zod request validation, setting cookies, returning proper status codes               |
-| Security | argon2 hash/verify helpers + the `requireAuth` preHandler hook                       | Why passwords are hashed rather than encrypted, timing-safe comparison, verifying JWTs, Fastify hooks |
-| Frontend | Admin login form + auth state (the current-user query and a protected-route wrapper) | react-hook-form + zod, TanStack Query, cookie-based auth from the browser's side, redirecting         |
-| Infra    | `.github/workflows/ci.yml`                                                           | GitHub Actions syntax, caching pnpm, running lint/typecheck/test on PRs                               |
+| Layer    | Task                                                                                                           | What you'll learn                                                                                                |
+| -------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| DB       | `User` model in `schema.prisma` + the first migration                                                          | Prisma schema syntax, enums, unique constraints, `@@map`, how migrations are generated and applied               |
+| API      | `POST /api/auth/login` route                                                                                   | Fastify routing, zod request validation, setting cookies, returning proper status codes                          |
+| Security | argon2 hash/verify helpers + the `requireAuth` preHandler hook                                                 | Why passwords are hashed rather than encrypted, timing-safe comparison, verifying JWTs, Fastify hooks            |
+| Frontend | Admin login form + auth state (the current-user query and a protected-route wrapper)                           | react-hook-form + zod, TanStack Query, cookie-based auth from the browser's side, redirecting                    |
+| Frontend | Login form extras: show/hide password + Caps Lock warning                                                      | `useState`, event handlers, controlled UI state                                                                  |
+| Frontend | Home page hero video: play/pause button, honours `prefers-reduced-motion` via a `usePrefersReducedMotion` hook | `useState`, `useRef` (DOM access), `useEffect` with cleanup (subscribing to `matchMedia`), writing a custom hook |
+| Infra    | `.github/workflows/ci.yml`                                                                                     | GitHub Actions syntax, caching pnpm, running lint/typecheck/test on PRs                                          |
 
 ## Order of work
 
@@ -58,21 +60,21 @@ A handoff log for whichever agent picks up next, on any machine or tool. Update 
 
 **Last updated:** 2026-10-19
 
-| Item                                                                                                   | Status                                   | Written by                |
-| ------------------------------------------------------------------------------------------------------ | ---------------------------------------- | ------------------------- |
-| `User` model + migration                                                                               | Done, applied to `dev-elmer`             | Elmer (hand-written)      |
-| `RefreshToken` model + migration                                                                       | Done, applied to `dev-elmer`             | —                         |
-| CI workflow                                                                                            | Done, merged                             | Elmer (hand-written)      |
-| `apps/api/src/modules/auth/password.ts` (`hashPassword`, `verifyPassword`)                             | Done, merged (PR #7)                     | Elmer (hand-written)      |
-| `apps/api/src/modules/auth/password.test.ts`                                                           | Done (6 tests), merged (PR #7)           | Agent, from Elmer's draft |
-| `POST /api/auth/login` (`modules/auth/routes.ts` + `service.ts`)                                       | Done, merged (PR #8)                     | Elmer (hand-written)      |
-| `modules/auth/routes.test.ts` (9 tests, mocked `findUnique`)                                           | Done, merged (PR #8)                     | Agent                     |
-| Seed script `seed:admin` (`src/scripts/`) + tests                                                      | Done, run on `dev-elmer`; login verified | Agent                     |
-| `requireAuth` (`modules/auth/require-auth.ts`)                                                         | Done, merged (PR #11)                    | Elmer (hand-written)      |
-| `request.user` typing (`jwt.ts`), `GET /api/auth/me`, admin plugin (`modules/admin/routes.ts`) + tests | Done, merged (PR #11)                    | Agent                     |
-| Refresh rotation, logout, change-password, `checkAccount`, `requireRole` + tests                       | Done on `elmer/auth-session`             | Agent                     |
-| Login rate limiting (`@fastify/rate-limit`)                                                            | Not started                              | Agent                     |
-| Admin login form + auth state                                                                          | **Next up**                              | Elmer (hand-written)      |
+| Item                                                                                                   | Status                                      | Written by                |
+| ------------------------------------------------------------------------------------------------------ | ------------------------------------------- | ------------------------- |
+| `User` model + migration                                                                               | Done, applied to `dev-elmer`                | Elmer (hand-written)      |
+| `RefreshToken` model + migration                                                                       | Done, applied to `dev-elmer`                | —                         |
+| CI workflow                                                                                            | Done, merged                                | Elmer (hand-written)      |
+| `apps/api/src/modules/auth/password.ts` (`hashPassword`, `verifyPassword`)                             | Done, merged (PR #7)                        | Elmer (hand-written)      |
+| `apps/api/src/modules/auth/password.test.ts`                                                           | Done (6 tests), merged (PR #7)              | Agent, from Elmer's draft |
+| `POST /api/auth/login` (`modules/auth/routes.ts` + `service.ts`)                                       | Done, merged (PR #8)                        | Elmer (hand-written)      |
+| `modules/auth/routes.test.ts` (9 tests, mocked `findUnique`)                                           | Done, merged (PR #8)                        | Agent                     |
+| Seed script `seed:admin` (`src/scripts/`) + tests                                                      | Done, run on `dev-elmer`; login verified    | Agent                     |
+| `requireAuth` (`modules/auth/require-auth.ts`)                                                         | Done, merged (PR #11)                       | Elmer (hand-written)      |
+| `request.user` typing (`jwt.ts`), `GET /api/auth/me`, admin plugin (`modules/admin/routes.ts`) + tests | Done, merged (PR #11)                       | Agent                     |
+| Refresh rotation, logout, change-password, `checkAccount`, `requireRole` + tests                       | Done, merged (PR #12)                       | Agent                     |
+| Login rate limiting                                                                                    | Owned by Abduraheem (his hand-written task) | —                         |
+| Admin login form + auth state                                                                          | **Next up**                                 | Elmer (hand-written)      |
 
 **Decisions worth knowing:**
 
@@ -93,6 +95,6 @@ A handoff log for whichever agent picks up next, on any machine or tool. Update 
 
 **Next steps:**
 
-1. Try refresh/logout/change-password by hand, then open the PR for `elmer/auth-session` (all agent-written; note that the login handler's cookie lines moved into `setSessionCookies`).
-2. Login rate limiting (the architecture doc says login is rate limited; it isn't yet).
+1. Auth API is merged (PR #12).
+2. Login rate limiting is Abduraheem's hand-written task. Tell him the auth routes are ready for it, and to also cover `/api/auth/change-password` and `/api/auth/refresh`.
 3. Last hand-written task: admin login form + auth state. The frontend needs to: call `/api/auth/me` on load; on any 401, call `/api/auth/refresh` once (de-duplicated) and retry; on 403 `PASSWORD_CHANGE_REQUIRED`, show the change-password page.
