@@ -83,7 +83,8 @@ A handoff log for whichever agent picks up next, on any machine or tool. Update 
 | Logout (`useLogout.ts`), admin header (`features/layout/AdminLayout.tsx`), expired-session handling in `query-client.ts` + tests | Done, merged (PR #15); browser-tested       | Agent                     |
 | User management API (`modules/users/`, `packages/shared/src/users.ts`) + 31 route tests                                          | Done, merged (PR #16); manually tested      | Agent                     |
 
-| Admin sidebar layout (`features/layout/AppSidebar.tsx`, `NavUser.tsx`, `nav-items.ts` + tests); replaces the top header | Done on `elmer/admin-sidebar`; not yet browser-tested | Agent |
+| Admin sidebar layout (`features/layout/AppSidebar.tsx`, `NavUser.tsx`, `nav-items.ts` + tests); replaces the top header | Done, merged (PR #17); browser-tested | Agent |
+| Users page (`features/users/`: table, add / change role / reset / deactivate / reactivate dialogs, temporary-password dialog) + tests | Done on `elmer/users-page`; not yet browser-tested | Agent |
 
 **Decisions worth knowing:**
 
@@ -108,12 +109,13 @@ A handoff log for whichever agent picks up next, on any machine or tool. Update 
 - User management (`/api/admin/users`): the plugin adds `requireRole('SUPER_ADMIN')` as a hook, so every route in it is super-admin only. Nobody can change their own role, reset their own password or deactivate themselves (403 `CANNOT_MODIFY_SELF`); that alone keeps a super admin, and a count check (409 `LAST_SUPER_ADMIN`) backs it up. Duplicate email is 409 `EMAIL_TAKEN`, including deactivated users. Reset and deactivate delete the target's refresh tokens. `POST /api/admin/users/:id/reactivate` (body `{ role }`) brings a deactivated user back with a new temporary password and a freshly chosen role; on an active user it's 409 `USER_ALREADY_ACTIVE`.
 - Admin navigation is a shadcn sidebar (`collapsible="icon"`; a sheet on phones, opened from the slim top bar). The signed-in user sits at the bottom with an initial avatar; its menu holds Change password and Sign out. Every admin page adds an entry to `NAV_ITEMS` in `features/layout/nav-items.ts`; `roles` hides a link from other roles, but pages must still check the role themselves.
 - `use-mobile.ts` in `packages/ui` is edited from shadcn's version to use `useSyncExternalStore` (the lint rule rejects setState in an effect). Re-running `shadcn add` must not overwrite it.
+- Users page: `USER` is labelled "Admin". Your own row has no ⋯ menu; a deactivated user's menu only offers Reactivate. Each action dialog is mounted fresh (keyed), so no mutation error carries over. Every user mutation invalidates the list on success **and** error, because a 404/409 usually means the list is stale. The row's dropdown is `modal={false}` so opening a dialog from it doesn't leave `pointer-events: none` on the body. The temporary-password dialog can only be closed with Done.
 - `generateTemporaryPassword` lives in `modules/users/temporary-password.ts`, shared by the seed script and user management.
 - `seed:admin` generates a random temporary password, prints it once, and sets `mustChangePassword: true`. It refuses an email that already exists. It isn't part of the `tsup` build yet (production use is a Week 6 deploy question).
 
 **Next steps:**
 
-1. Browser-test the sidebar (desktop collapse, phone sheet, user menu), then open the PR for `elmer/admin-sidebar`.
-2. Users page in the admin app (add it to `NAV_ITEMS` with `roles: ['SUPER_ADMIN']`). Elmer decides first: table or cards, and how the one-time temporary password is shown.
-3. Login rate limiting is Abduraheem's hand-written task. Tell him the auth routes are ready for it, and to also cover `/api/auth/change-password` and `/api/auth/refresh`.
-4. Hand-written: login form extras (show/hide password + Caps Lock warning).
+1. Browser-test the Users page (every action, the temporary-password dialog, a regular admin typing `/users`), then open the PR for `elmer/users-page`.
+2. Hand-written: login form extras (show/hide password + Caps Lock warning).
+3. Hero: API, editor, home section (the hero video is hand-written).
+4. Login rate limiting is Abduraheem's hand-written task. Tell him the auth routes are ready for it, and to also cover `/api/auth/change-password` and `/api/auth/refresh`.

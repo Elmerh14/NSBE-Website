@@ -5,6 +5,7 @@ import { LoginPage } from './features/auth/LoginPage';
 import { RequireAuth } from './features/auth/RequireAuth';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { AdminLayout } from './features/layout/AdminLayout';
+import { UsersPage } from './features/users/UsersPage';
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -14,7 +15,10 @@ export const router = createBrowserRouter([
     children: [
       {
         Component: AdminLayout,
-        children: [{ path: '/', Component: DashboardPage }],
+        children: [
+          { path: '/', Component: DashboardPage },
+          { path: '/users', Component: UsersPage },
+        ],
       },
     ],
   },
