@@ -5,6 +5,7 @@ import { LoginPage } from './features/auth/LoginPage';
 import { RequireAuth } from './features/auth/RequireAuth';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { AdminLayout } from './features/layout/AdminLayout';
+import { SettingsPage } from './features/settings/SettingsPage';
 import { UsersPage } from './features/users/UsersPage';
 
 export const router = createBrowserRouter([
@@ -17,6 +18,7 @@ export const router = createBrowserRouter([
         Component: AdminLayout,
         children: [
           { path: '/', Component: DashboardPage },
+          { path: '/settings', Component: SettingsPage },
           { path: '/users', Component: UsersPage },
         ],
       },
