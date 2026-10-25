@@ -84,7 +84,7 @@ A handoff log for whichever agent picks up next, on any machine or tool. Update 
 | User management API (`modules/users/`, `packages/shared/src/users.ts`) + 31 route tests                                          | Done, merged (PR #16); manually tested      | Agent                     |
 
 | Admin sidebar layout (`features/layout/AppSidebar.tsx`, `NavUser.tsx`, `nav-items.ts` + tests); replaces the top header | Done, merged (PR #17); browser-tested | Agent |
-| Users page (`features/users/`: table, add / change role / reset / deactivate / reactivate dialogs, temporary-password dialog) + tests | Done on `elmer/users-page`; not yet browser-tested | Agent |
+| Users page (`features/users/`: table, add / change role / reset / deactivate / reactivate dialogs, temporary-password dialog) + tests | Done, merged (PR #18); browser-tested | Agent |
 
 **Decisions worth knowing:**
 
@@ -115,7 +115,6 @@ A handoff log for whichever agent picks up next, on any machine or tool. Update 
 
 **Next steps:**
 
-1. Browser-test the Users page (every action, the temporary-password dialog, a regular admin typing `/users`), then open the PR for `elmer/users-page`.
-2. Hand-written: login form extras (show/hide password + Caps Lock warning).
-3. Hero: API, editor, home section (the hero video is hand-written).
-4. Login rate limiting is Abduraheem's hand-written task. Tell him the auth routes are ready for it, and to also cover `/api/auth/change-password` and `/api/auth/refresh`.
+1. Browser-test the login form extras on `elmer/login-form-extras`, then open the PR.
+2. Hero: API, editor, home section (the hero video is hand-written).
+3. Login rate limiting is Abduraheem's hand-written task. Tell him the auth routes are ready for it, and to also cover `/api/auth/change-password` and `/api/auth/refresh`.
