@@ -17,6 +17,7 @@ import { ACCESS_TOKEN_COOKIE } from './modules/auth/cookies';
 import { toCurrentUser } from './modules/auth/jwt';
 import { authRoutes } from './modules/auth/routes';
 import { eventsRoutes } from './modules/events/routes';
+import { settingsRoutes } from './modules/settings/routes';
 
 // Fastify's own client errors (bad JSON, payload too large, ...) carry a 4xx status.
 function isFastifyClientError(error: unknown): error is FastifyError {
@@ -77,6 +78,7 @@ export async function buildApp(config: Config) {
 
   await app.register(authRoutes);
   await app.register(eventsRoutes);
+  await app.register(settingsRoutes);
   // All /api/admin/* routes live inside this plugin, behind requireAuth.
   await app.register(adminRoutes);
 

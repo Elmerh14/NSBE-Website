@@ -85,6 +85,8 @@ A handoff log for whichever agent picks up next, on any machine or tool. Update 
 
 | Admin sidebar layout (`features/layout/AppSidebar.tsx`, `NavUser.tsx`, `nav-items.ts` + tests); replaces the top header | Done, merged (PR #17); browser-tested | Agent |
 | Users page (`features/users/`: table, add / change role / reset / deactivate / reactivate dialogs, temporary-password dialog) + tests | Done, merged (PR #18); browser-tested | Agent |
+| `SiteSettings` model + migration (singleton, `CHECK (id = 1)` added by hand), `GET /api/settings`, `PUT /api/admin/settings` + tests | Done on `elmer/site-settings`; migration applied to `dev-elmer` | Agent |
+| Admin Settings page (`features/settings/`: one form, Contact + Social links, unsaved-changes hint) | Done on `elmer/site-settings`; not yet browser-tested | Agent |
 
 **Decisions worth knowing:**
 
@@ -110,11 +112,13 @@ A handoff log for whichever agent picks up next, on any machine or tool. Update 
 - Admin navigation is a shadcn sidebar (`collapsible="icon"`; a sheet on phones, opened from the slim top bar). The signed-in user sits at the bottom with an initial avatar; its menu holds Change password and Sign out. Every admin page adds an entry to `NAV_ITEMS` in `features/layout/nav-items.ts`; `roles` hides a link from other roles, but pages must still check the role themselves.
 - `use-mobile.ts` in `packages/ui` is edited from shadcn's version to use `useSyncExternalStore` (the lint rule rejects setState in an effect). Re-running `shadcn add` must not overwrite it.
 - Users page: `USER` is labelled "Admin". Your own row has no ⋯ menu; a deactivated user's menu only offers Reactivate. Each action dialog is mounted fresh (keyed), so no mutation error carries over. Every user mutation invalidates the list on success **and** error, because a 404/409 usually means the list is stale. The row's dropdown is `modal={false}` so opening a dialog from it doesn't leave `pointer-events: none` on the body. The temporary-password dialog can only be closed with Done.
+- Site settings: one row, id 1, created on first save (`upsert`); `GET` returns all-null until then, so no seeding. `PUT` replaces all six fields; any admin may use it. `UpdateSiteSettingsRequestSchema` trims, turns `''` into null, allows only `https` links, and checks each social link's hostname (`(www.)?instagram.com` etc.). The admin form uses the same schema.
 - `generateTemporaryPassword` lives in `modules/users/temporary-password.ts`, shared by the seed script and user management.
 - `seed:admin` generates a random temporary password, prints it once, and sets `mustChangePassword: true`. It refuses an email that already exists. It isn't part of the `tsup` build yet (production use is a Week 6 deploy question).
 
 **Next steps:**
 
-1. Browser-test the login form extras on `elmer/login-form-extras`, then open the PR.
-2. Hero: API, editor, home section (the hero video is hand-written).
-3. Login rate limiting is Abduraheem's hand-written task. Tell him the auth routes are ready for it, and to also cover `/api/auth/change-password` and `/api/auth/refresh`.
+1. Browser-test the Settings page on `elmer/site-settings`, then open the PR.
+2. Public footer (reads `GET /api/settings`), once the public site layout is designed.
+3. Hero (blocked on Yahya's media picker + presigned GET helper): API, editor, home section (the hero video is hand-written).
+4. Login rate limiting is Abduraheem's hand-written task. Tell him the auth routes are ready for it, and to also cover `/api/auth/change-password` and `/api/auth/refresh`.

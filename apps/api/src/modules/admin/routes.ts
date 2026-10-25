@@ -2,6 +2,7 @@ import type { FastifyPluginAsyncZod, FastifyPluginCallbackZod } from 'fastify-ty
 
 import { checkAccount } from '../auth/check-account';
 import { requireAuth } from '../auth/require-auth';
+import { settingsAdminRoutes } from '../settings/routes';
 import { usersAdminRoutes } from '../users/routes';
 
 type AdminPlugin = FastifyPluginAsyncZod | FastifyPluginCallbackZod;
@@ -10,7 +11,7 @@ type AdminPlugin = FastifyPluginAsyncZod | FastifyPluginCallbackZod;
 // every route registered inside adminRoutes, so a new admin route can't be left unprotected.
 // For routes limited to a role, also add `onRequest: requireRole('SUPER_ADMIN')` on the route.
 // Never register an /api/admin route anywhere else.
-export const ADMIN_PLUGINS: AdminPlugin[] = [usersAdminRoutes];
+export const ADMIN_PLUGINS: AdminPlugin[] = [usersAdminRoutes, settingsAdminRoutes];
 
 export const adminRoutes: FastifyPluginCallbackZod<{ plugins?: AdminPlugin[] }> = (
   app,

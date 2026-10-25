@@ -110,3 +110,19 @@ model Event {
   @@index([startsAt])
   @@map("events")
 }
+
+// Site-wide values shown in the public footer. A singleton: there is only ever one row, id 1
+// (a CHECK constraint in the migration enforces it). Every field is optional; a blank one is
+// simply left out of the footer.
+model SiteSettings {
+  id           Int      @id @default(1)
+  contactEmail String?  @map("contact_email")
+  joinUrl      String?  @map("join_url")
+  instagramUrl String?  @map("instagram_url")
+  linkedinUrl  String?  @map("linkedin_url")
+  tiktokUrl    String?  @map("tiktok_url")
+  facebookUrl  String?  @map("facebook_url")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("site_settings")
+}

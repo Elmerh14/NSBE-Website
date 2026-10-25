@@ -140,7 +140,7 @@ Rules:
 | `events`             | title, description, starts_at, ends_at, location, image_media_id, rsvp_link                                 |
 | `sponsors`           | name, logo_media_id, tier, url                                                                              |
 | `gallery_items`      | media_id, caption, sort_order                                                                               |
-| `site_settings`      | singleton: social links, contact email, join link                                                           |
+| `site_settings`      | singleton (id = 1): contact_email, join_url, instagram/linkedin/tiktok/facebook URLs, all nullable          |
 
 ## Pages
 

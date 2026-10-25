@@ -1,5 +1,5 @@
 import type { Role } from '@nsbe/shared';
-import { LayoutDashboard, type LucideIcon, Users } from 'lucide-react';
+import { LayoutDashboard, type LucideIcon, Settings, Users } from 'lucide-react';
 
 export type NavItem = {
   title: string;
@@ -12,6 +12,7 @@ export type NavItem = {
 // Every page in the sidebar. Add your page here when you add its route in router.tsx.
 export const NAV_ITEMS: readonly NavItem[] = [
   { title: 'Dashboard', to: '/', icon: LayoutDashboard },
+  { title: 'Settings', to: '/settings', icon: Settings },
   { title: 'Users', to: '/users', icon: Users, roles: ['SUPER_ADMIN'] },
 ];
 
