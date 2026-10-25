@@ -85,8 +85,9 @@ A handoff log for whichever agent picks up next, on any machine or tool. Update 
 
 | Admin sidebar layout (`features/layout/AppSidebar.tsx`, `NavUser.tsx`, `nav-items.ts` + tests); replaces the top header | Done, merged (PR #17); browser-tested | Agent |
 | Users page (`features/users/`: table, add / change role / reset / deactivate / reactivate dialogs, temporary-password dialog) + tests | Done, merged (PR #18); browser-tested | Agent |
-| `SiteSettings` model + migration (singleton, `CHECK (id = 1)` added by hand), `GET /api/settings`, `PUT /api/admin/settings` + tests | Done on `elmer/site-settings`; migration applied to `dev-elmer` | Agent |
-| Admin Settings page (`features/settings/`: one form, Contact + Social links, unsaved-changes hint) | Done on `elmer/site-settings`; not yet browser-tested | Agent |
+| `SiteSettings` model + migration (singleton, `CHECK (id = 1)` added by hand), `GET /api/settings`, `PUT /api/admin/settings` + tests | Done, merged (PR #20); migration applied to `dev-elmer` | Agent |
+| Admin Settings page (`features/settings/`: one form, Contact + Social links, unsaved-changes hint) | Done, merged (PR #20); browser-tested | Agent |
+| Public site shell (`apps/web`: router, header with About ▾ menu + mobile sheet, 3-column footer from settings, Coming soon pages) + tests | Done on `elmer/public-site-shell`; desktop checked in browser, phone layout not yet | Agent |
 
 **Decisions worth knowing:**
 
@@ -113,12 +114,13 @@ A handoff log for whichever agent picks up next, on any machine or tool. Update 
 - `use-mobile.ts` in `packages/ui` is edited from shadcn's version to use `useSyncExternalStore` (the lint rule rejects setState in an effect). Re-running `shadcn add` must not overwrite it.
 - Users page: `USER` is labelled "Admin". Your own row has no ⋯ menu; a deactivated user's menu only offers Reactivate. Each action dialog is mounted fresh (keyed), so no mutation error carries over. Every user mutation invalidates the list on success **and** error, because a 404/409 usually means the list is stale. The row's dropdown is `modal={false}` so opening a dialog from it doesn't leave `pointer-events: none` on the body. The temporary-password dialog can only be closed with Done.
 - Site settings: one row, id 1, created on first save (`upsert`); `GET` returns all-null until then, so no seeding. `PUT` replaces all six fields; any admin may use it. `UpdateSiteSettingsRequestSchema` trims, turns `''` into null, allows only `https` links, and checks each social link's hostname (`(www.)?instagram.com` etc.). The admin form uses the same schema.
+- Public site: every page is listed once in `PAGES` (`apps/web/src/features/layout/site.ts`); the header, footer and `routes.tsx` all use it, and a test checks every page has a route. Unbuilt pages render `ComingSoonPage`; whoever builds one swaps in their component. The header's Join button and the footer's "Join NSBE" both go to the join link from Settings and hide when it's unset; the Contact page is separate. Brand icons are inline SVG paths from Simple Icons (CC0) in `SocialIcon.tsx`, because lucide-react v1 has no brand icons.
 - `generateTemporaryPassword` lives in `modules/users/temporary-password.ts`, shared by the seed script and user management.
 - `seed:admin` generates a random temporary password, prints it once, and sets `mustChangePassword: true`. It refuses an email that already exists. It isn't part of the `tsup` build yet (production use is a Week 6 deploy question).
 
 **Next steps:**
 
-1. Browser-test the Settings page on `elmer/site-settings`, then open the PR.
-2. Public footer (reads `GET /api/settings`), once the public site layout is designed.
+1. Check the public site on a phone width and with settings filled in, then open the PR for `elmer/public-site-shell`. Tell Yahya and Abduraheem how to add their public pages (`routes.tsx`).
+2. Replace the placeholder mission (`SITE_MISSION` in `apps/web/src/features/layout/site.ts`) once the chapter has one.
 3. Hero (blocked on Yahya's media picker + presigned GET helper): API, editor, home section (the hero video is hand-written).
 4. Login rate limiting is Abduraheem's hand-written task. Tell him the auth routes are ready for it, and to also cover `/api/auth/change-password` and `/api/auth/refresh`.
