@@ -1,16 +1,17 @@
-# Elmer — Auth, Users, Hero & Settings
+# Elmer — Auth, Users, Hero, Settings & Media uploads
 
-Project lead. Owns everything to do with logging in and who has access, plus the home page hero and site-wide settings. Also provisions the hosted services and shares credentials with the team.
+Project lead. Owns everything to do with logging in and who has access, plus the home page hero, site-wide settings, and media uploads (taken over from Yahya on 2026-10-26 because the hero was blocked on them). Also provisions the hosted services and shares credentials with the team.
 
 ## Features owned
 
-| Feature         | DB                     | API                                                                                                  | Admin UI                                                              | Public UI                                                                       |
-| --------------- | ---------------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Auth            | `User`, `RefreshToken` | `POST /api/auth/login`, `/logout`, `/refresh`, `/change-password`, `GET /api/auth/me`                | Login page, forced password change, auth state / route guard          | —                                                                               |
-| User management | `User`                 | `/api/admin/users` (list, create, change role, reset temp password, deactivate). `SUPER_ADMIN` only. | Users page                                                            | —                                                                               |
-| Hero            | `Hero`                 | `GET /api/hero`, `PUT /api/admin/hero`                                                               | Hero editor: photo/video toggle + preview, using Yahya's media picker | Home page hero section                                                          |
-| Site settings   | `SiteSettings`         | `GET /api/settings`, `PUT /api/admin/settings`                                                       | Settings page                                                         | Footer (socials, contact email, join link)                                      |
-| Home page       | —                      | —                                                                                                    | —                                                                     | Home layout: hero, mission, upcoming events (Abduraheem's data), sponsors strip |
+| Feature         | DB                                      | API                                                                                                                                                                                   | Admin UI                                                                                                      | Public UI                                                                       |
+| --------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Auth            | `User`, `RefreshToken`                  | `POST /api/auth/login`, `/logout`, `/refresh`, `/change-password`, `GET /api/auth/me`                                                                                                 | Login page, forced password change, auth state / route guard                                                  | —                                                                               |
+| User management | `User`                                  | `/api/admin/users` (list, create, change role, reset temp password, deactivate). `SUPER_ADMIN` only.                                                                                  | Users page                                                                                                    | —                                                                               |
+| Hero            | `Hero`                                  | `GET /api/hero`, `PUT /api/admin/hero`                                                                                                                                                | Hero editor: photo/video toggle + preview, using the media picker                                             | Home page hero section                                                          |
+| Site settings   | `SiteSettings`                          | `GET /api/settings`, `PUT /api/admin/settings`                                                                                                                                        | Settings page                                                                                                 | Footer (socials, contact email, join link)                                      |
+| Home page       | —                                       | —                                                                                                                                                                                     | —                                                                                                             | Home layout: hero, mission, upcoming events (Abduraheem's data), sponsors strip |
+| Media uploads   | `Media` (Yahya's model, already merged) | `POST /api/admin/media/upload-url` (presign), `POST /api/admin/media` (save after upload), `DELETE /api/admin/media/:id`; presigned GET helper used by every route that returns media | Upload component with progress; reusable **media picker** used by hero, leadership, events, sponsors, gallery | Responsive image/video components that use the presigned URLs from the API      |
 
 Plus the seed script: `pnpm --filter api seed:admin`.
 
@@ -21,6 +22,9 @@ Plus the seed script: `pnpm --filter api seed:admin`.
 - Refresh tokens stored hashed and rotated on every use; revoked on logout, deactivation and password reset.
 - `requireAuth` and `requireRole` hooks; block other admin routes while `must_change_password` is true.
 - Role safeguards: there is always at least one `SUPER_ADMIN`, and nobody can delete or demote themselves.
+- Media: an allow-list of MIME types (e.g. `image/jpeg`, `image/png`, `image/webp`, `video/mp4`) and size limits per type, checked **before** issuing a presigned URL.
+- Presigned upload URLs are short-lived (a few minutes) and tied to one generated object key. The client never chooses the key.
+- The bucket stays **private**. Reads go through presigned GET URLs (max 7 days) that the API signs; never make objects public. The access key and secret key stay out of git and out of the browser.
 
 ## Infra responsibilities
 
@@ -31,6 +35,8 @@ Plus the seed script: `pnpm --filter api seed:admin`.
 ## Hand-written tasks
 
 Write these yourself. Your agent will explain and review, but won't write them.
+
+The media upload work taken over from Yahya is **not** hand-written: its hand-written tasks (presign route, MIME/size validation, upload component) were dropped when it was reassigned, so the agent may write them.
 
 | Layer    | Task                                                                                                           | What you'll learn                                                                                                |
 | -------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
@@ -46,48 +52,49 @@ Write these yourself. Your agent will explain and review, but won't write them.
 
 1. **Week 1:** scaffold with the team; provision Neon branches + the Filebase bucket; CI workflow (hand-written).
 2. **Weeks 2–3:** `User`/`RefreshToken` models → hashing + login + `requireAuth` → refresh/logout/me → login form + auth state → user management API + page → seed script.
-3. **Weeks 4–5:** hero (API + editor + home section) → site settings → home page layout.
+3. **Weeks 4–5:** site settings → media uploads (presign + validation → upload component → save endpoint → presigned GET helper → media picker) → hero (API + editor + home section) → home page layout.
 4. **Week 6:** Render production deploy, domain + cookie check across subdomains.
 
 ## Depends on / provides
 
 - **Provides** `requireAuth` / `requireRole` and the admin layout and route guard. Yahya and Abduraheem need these early, so land a minimal version first.
-- **Depends on** Yahya's media picker (hero editor) and Abduraheem's events API (home page "upcoming events").
+- **Provides** the media picker and the presigned GET helper. Yahya (leadership, media library) and Abduraheem (events, sponsors, gallery) need them, so ship a basic picker early.
+- **Depends on** Abduraheem's events API (home page "upcoming events") and sponsors API (sponsors strip).
 
 ## Progress
 
 A handoff log for whichever agent picks up next, on any machine or tool. Update it at the end of each session, then check `git status` / `git log` in case it's out of date.
 
-**Last updated:** 2026-10-25
+**Last updated:** 2026-10-26
 
-| Item                                                                                                                             | Status                                      | Written by                |
-| -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- | ------------------------- |
-| `User` model + migration                                                                                                         | Done, applied to `dev-elmer`                | Elmer (hand-written)      |
-| `RefreshToken` model + migration                                                                                                 | Done, applied to `dev-elmer`                | —                         |
-| CI workflow                                                                                                                      | Done, merged                                | Elmer (hand-written)      |
-| `apps/api/src/modules/auth/password.ts` (`hashPassword`, `verifyPassword`)                                                       | Done, merged (PR #7)                        | Elmer (hand-written)      |
-| `apps/api/src/modules/auth/password.test.ts`                                                                                     | Done (6 tests), merged (PR #7)              | Agent, from Elmer's draft |
-| `POST /api/auth/login` (`modules/auth/routes.ts` + `service.ts`)                                                                 | Done, merged (PR #8)                        | Elmer (hand-written)      |
-| `modules/auth/routes.test.ts` (9 tests, mocked `findUnique`)                                                                     | Done, merged (PR #8)                        | Agent                     |
-| Seed script `seed:admin` (`src/scripts/`) + tests                                                                                | Done, run on `dev-elmer`; login verified    | Agent                     |
-| `requireAuth` (`modules/auth/require-auth.ts`)                                                                                   | Done, merged (PR #11)                       | Elmer (hand-written)      |
-| `request.user` typing (`jwt.ts`), `GET /api/auth/me`, admin plugin (`modules/admin/routes.ts`) + tests                           | Done, merged (PR #11)                       | Agent                     |
-| Refresh rotation, logout, change-password, `checkAccount`, `requireRole` + tests                                                 | Done, merged (PR #12)                       | Agent                     |
-| Login rate limiting                                                                                                              | Owned by Abduraheem (his hand-written task) | —                         |
-| Admin `lib/api.ts` (`apiFetch`, 401 → one shared refresh → retry) + tests, `query-client.ts`, login/dashboard page shells        | Done, merged (PR #13)                       | Agent                     |
-| Login form wired to the API (`LoginForm.tsx`, `useLogin.ts`)                                                                     | Done, merged (PR #13); browser-tested       | Elmer (hand-written)      |
-| Current-user query (`useCurrentUser.ts`, `query-keys.ts`)                                                                        | Done, merged (PR #14); browser-tested       | Elmer (hand-written)      |
-| Protected-route wrapper (`RequireAuth.tsx`) + layout route in `router.tsx`                                                       | Done, merged (PR #14); browser-tested       | Elmer (hand-written)      |
-| Login form extras: show/hide password + Caps Lock warning                                                                        | Not started                                 | Elmer (hand-written)      |
-| Change-password form (`ChangePasswordForm.tsx`, `useChangePassword.ts`, `ChangePasswordFormSchema` in shared)                    | Done, merged (PR #15); browser-tested       | Agent                     |
-| Logout (`useLogout.ts`), admin header (`features/layout/AdminLayout.tsx`), expired-session handling in `query-client.ts` + tests | Done, merged (PR #15); browser-tested       | Agent                     |
-| User management API (`modules/users/`, `packages/shared/src/users.ts`) + 31 route tests                                          | Done, merged (PR #16); manually tested      | Agent                     |
-
-| Admin sidebar layout (`features/layout/AppSidebar.tsx`, `NavUser.tsx`, `nav-items.ts` + tests); replaces the top header | Done, merged (PR #17); browser-tested | Agent |
-| Users page (`features/users/`: table, add / change role / reset / deactivate / reactivate dialogs, temporary-password dialog) + tests | Done, merged (PR #18); browser-tested | Agent |
-| `SiteSettings` model + migration (singleton, `CHECK (id = 1)` added by hand), `GET /api/settings`, `PUT /api/admin/settings` + tests | Done, merged (PR #20); migration applied to `dev-elmer` | Agent |
-| Admin Settings page (`features/settings/`: one form, Contact + Social links, unsaved-changes hint) | Done, merged (PR #20); browser-tested | Agent |
-| Public site shell (`apps/web`: router, header with About ▾ menu + mobile sheet, 3-column footer from settings, Coming soon pages) + tests | Done on `elmer/public-site-shell`; desktop checked in browser, phone layout not yet | Agent |
+| Item                                                                                                                                      | Status                                                                           | Written by                         |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ---------------------------------- |
+| `User` model + migration                                                                                                                  | Done, applied to `dev-elmer`                                                     | Elmer (hand-written)               |
+| `RefreshToken` model + migration                                                                                                          | Done, applied to `dev-elmer`                                                     | —                                  |
+| CI workflow                                                                                                                               | Done, merged                                                                     | Elmer (hand-written)               |
+| `apps/api/src/modules/auth/password.ts` (`hashPassword`, `verifyPassword`)                                                                | Done, merged (PR #7)                                                             | Elmer (hand-written)               |
+| `apps/api/src/modules/auth/password.test.ts`                                                                                              | Done (6 tests), merged (PR #7)                                                   | Agent, from Elmer's draft          |
+| `POST /api/auth/login` (`modules/auth/routes.ts` + `service.ts`)                                                                          | Done, merged (PR #8)                                                             | Elmer (hand-written)               |
+| `modules/auth/routes.test.ts` (9 tests, mocked `findUnique`)                                                                              | Done, merged (PR #8)                                                             | Agent                              |
+| Seed script `seed:admin` (`src/scripts/`) + tests                                                                                         | Done, run on `dev-elmer`; login verified                                         | Agent                              |
+| `requireAuth` (`modules/auth/require-auth.ts`)                                                                                            | Done, merged (PR #11)                                                            | Elmer (hand-written)               |
+| `request.user` typing (`jwt.ts`), `GET /api/auth/me`, admin plugin (`modules/admin/routes.ts`) + tests                                    | Done, merged (PR #11)                                                            | Agent                              |
+| Refresh rotation, logout, change-password, `checkAccount`, `requireRole` + tests                                                          | Done, merged (PR #12)                                                            | Agent                              |
+| Login rate limiting                                                                                                                       | Owned by Abduraheem (his hand-written task)                                      | —                                  |
+| Admin `lib/api.ts` (`apiFetch`, 401 → one shared refresh → retry) + tests, `query-client.ts`, login/dashboard page shells                 | Done, merged (PR #13)                                                            | Agent                              |
+| Login form wired to the API (`LoginForm.tsx`, `useLogin.ts`)                                                                              | Done, merged (PR #13); browser-tested                                            | Elmer (hand-written)               |
+| Current-user query (`useCurrentUser.ts`, `query-keys.ts`)                                                                                 | Done, merged (PR #14); browser-tested                                            | Elmer (hand-written)               |
+| Protected-route wrapper (`RequireAuth.tsx`) + layout route in `router.tsx`                                                                | Done, merged (PR #14); browser-tested                                            | Elmer (hand-written)               |
+| Login form extras: show/hide password + Caps Lock warning                                                                                 | Done, merged (PR #19)                                                            | Elmer (hand-written)               |
+| Change-password form (`ChangePasswordForm.tsx`, `useChangePassword.ts`, `ChangePasswordFormSchema` in shared)                             | Done, merged (PR #15); browser-tested                                            | Agent                              |
+| Logout (`useLogout.ts`), admin header (`features/layout/AdminLayout.tsx`), expired-session handling in `query-client.ts` + tests          | Done, merged (PR #15); browser-tested                                            | Agent                              |
+| User management API (`modules/users/`, `packages/shared/src/users.ts`) + 31 route tests                                                   | Done, merged (PR #16); manually tested                                           | Agent                              |
+| Admin sidebar layout (`features/layout/AppSidebar.tsx`, `NavUser.tsx`, `nav-items.ts` + tests); replaces the top header                   | Done, merged (PR #17); browser-tested                                            | Agent                              |
+| Users page (`features/users/`: table, add / change role / reset / deactivate / reactivate dialogs, temporary-password dialog) + tests     | Done, merged (PR #18); browser-tested                                            | Agent                              |
+| `SiteSettings` model + migration (singleton, `CHECK (id = 1)` added by hand), `GET /api/settings`, `PUT /api/admin/settings` + tests      | Done, merged (PR #20); migration applied to `dev-elmer`                          | Agent                              |
+| Admin Settings page (`features/settings/`: one form, Contact + Social links, unsaved-changes hint)                                        | Done, merged (PR #20); tested end to end: saved values show in the public footer | Agent                              |
+| Public site shell (`apps/web`: router, header with About ▾ menu + mobile sheet, 3-column footer from settings, Coming soon pages) + tests | Done, merged (PR #21); desktop checked in browser, phone layout not yet          | Agent                              |
+| Media uploads (presign, validation, save, delete, GET helper, upload component, media picker, public image/video components)              | Not started; reassigned from Yahya 2026-10-26                                    | Agent may write (not hand-written) |
 
 **Decisions worth knowing:**
 
@@ -120,7 +127,8 @@ A handoff log for whichever agent picks up next, on any machine or tool. Update 
 
 **Next steps:**
 
-1. Check the public site on a phone width and with settings filled in, then open the PR for `elmer/public-site-shell`. Tell Yahya and Abduraheem how to add their public pages (`routes.tsx`).
-2. Replace the placeholder mission (`SITE_MISSION` in `apps/web/src/features/layout/site.ts`) once the chapter has one.
-3. Hero (blocked on Yahya's media picker + presigned GET helper): API, editor, home section (the hero video is hand-written).
-4. Login rate limiting is Abduraheem's hand-written task. Tell him the auth routes are ready for it, and to also cover `/api/auth/change-password` and `/api/auth/refresh`.
+1. Check the public site on a phone width. Tell Yahya and Abduraheem how to add their public pages (`PAGES` in `site.ts`, then `routes.tsx`), and that the media picker is now Elmer's.
+2. Media uploads: presign route + MIME/size validation → upload component → save/delete endpoints → presigned GET helper → media picker → public image/video components. Needs the Filebase env vars in `.env`.
+3. Hero: API, editor (uses the media picker), home section (the hero video play/pause + `usePrefersReducedMotion` is hand-written).
+4. Replace the placeholder mission (`SITE_MISSION` in `apps/web/src/features/layout/site.ts`) once the chapter has one.
+5. Login rate limiting is Abduraheem's hand-written task. Tell him the auth routes are ready for it, and to also cover `/api/auth/change-password` and `/api/auth/refresh`.

@@ -6,7 +6,7 @@ Owns the chapter's activity content (events, sponsors, gallery), the join/contac
 
 | Feature               | DB                                 | API                                                         | Admin UI                                                | Public UI                                                     |
 | --------------------- | ---------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------- |
-| Events                | `Event`                            | `GET /api/events` (upcoming/past), `/api/admin/events` CRUD | Events editor (uses Yahya's media picker for the image) | Events page; "upcoming events" data for Elmer's home page     |
+| Events                | `Event`                            | `GET /api/events` (upcoming/past), `/api/admin/events` CRUD | Events editor (uses Elmer's media picker for the image) | Events page; "upcoming events" data for Elmer's home page     |
 | Sponsors              | `Sponsor`                          | `GET /api/sponsors`, `/api/admin/sponsors` CRUD             | Sponsors editor (logo via media picker, tier)           | Sponsors/Partners page; sponsors strip data for the home page |
 | Gallery               | `GalleryItem`                      | `GET /api/gallery`, `/api/admin/gallery` CRUD + reorder     | Gallery editor                                          | Gallery page                                                  |
 | Join / Contact        | — (uses `SiteSettings` from Elmer) | —                                                           | —                                                       | Join/Contact page                                             |
@@ -47,4 +47,4 @@ Write these yourself. Your agent will explain and review, but won't write them.
 ## Depends on / provides
 
 - **Provides** the events and sponsors data that Elmer's home page uses, and the CORS/rate-limit setup the whole API needs.
-- **Depends on** Elmer's `requireAuth` and admin layout, Yahya's media picker, and Elmer's `SiteSettings` (contact page).
+- **Depends on** Elmer's `requireAuth` and admin layout, Elmer's media picker, and Elmer's `SiteSettings` (contact page).

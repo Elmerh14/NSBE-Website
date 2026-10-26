@@ -223,12 +223,12 @@ The conventions agents must follow are in [`AGENTS.md`](../AGENTS.md).
 
 Each engineer owns whole features end to end: Prisma model → API routes → admin UI → public page → their piece of infra.
 
-|          | Elmer                                                  | Yahya                                                 | Abduraheem                                                |
-| -------- | ------------------------------------------------------ | ----------------------------------------------------- | --------------------------------------------------------- |
-| Features | Auth, user management, hero + home page, site settings | Media uploads + media library, leadership, about page | Events, sponsors, gallery, join/contact page              |
-| DB       | `User`, `RefreshToken`, `Hero`, `SiteSettings`         | `Media`, `LeadershipMember`                           | `Event`, `Sponsor`, `GalleryItem`                         |
-| Security | Password hashing, JWT + refresh, role guards           | Upload validation, bucket CORS, bucket access         | CORS, rate limiting, security headers (`@fastify/helmet`) |
-| Infra    | API deploy on Render, CI pipeline                      | Storage bucket, Cloudflare Pages for web + admin      | Neon branches + migration-on-deploy, domain/DNS           |
+|          | Elmer                                                                 | Yahya                                            | Abduraheem                                                |
+| -------- | --------------------------------------------------------------------- | ------------------------------------------------ | --------------------------------------------------------- |
+| Features | Auth, user management, hero + home page, site settings, media uploads | Media library, leadership, about page            | Events, sponsors, gallery, join/contact page              |
+| DB       | `User`, `RefreshToken`, `Hero`, `SiteSettings`                        | `Media`, `LeadershipMember`                      | `Event`, `Sponsor`, `GalleryItem`                         |
+| Security | Password hashing, JWT + refresh, role guards, upload validation       | Bucket CORS, bucket access                       | CORS, rate limiting, security headers (`@fastify/helmet`) |
+| Infra    | API deploy on Render, CI pipeline                                     | Storage bucket, Cloudflare Pages for web + admin | Neon branches + migration-on-deploy, domain/DNS           |
 
 Elmer is project lead and provisions accounts and credentials.
 
@@ -236,13 +236,15 @@ Elmer is project lead and provisions accounts and credentials.
 
 About 90% of the work is AI-assisted. About 10% is written **by hand**, chosen so everyone writes one piece of every layer. Coding agents must not write these; they explain, hint and review instead (see `AGENTS.md`).
 
-| Layer    | Elmer                               | Yahya                                                 | Abduraheem                                       |
-| -------- | ----------------------------------- | ----------------------------------------------------- | ------------------------------------------------ |
-| DB       | `User` model + first migration      | `Media` model + relation to `LeadershipMember`        | `Event` model + migration                        |
-| API      | `POST /api/auth/login`              | presign-upload route                                  | events CRUD routes with zod validation           |
-| Security | argon2 hashing + `requireAuth` hook | type/size checks before issuing a presigned URL       | `@fastify/rate-limit` on login + CORS config     |
-| Frontend | admin login form + auth state       | upload component (direct PUT to bucket with progress) | public Events page with data fetching            |
-| Infra    | GitHub Actions CI workflow          | Cloudflare Pages deploy config                        | Neon branch setup + `prisma migrate deploy` step |
+| Layer    | Elmer                               | Yahya                                          | Abduraheem                                       |
+| -------- | ----------------------------------- | ---------------------------------------------- | ------------------------------------------------ |
+| DB       | `User` model + first migration      | `Media` model + relation to `LeadershipMember` | `Event` model + migration                        |
+| API      | `POST /api/auth/login`              | —                                              | events CRUD routes with zod validation           |
+| Security | argon2 hashing + `requireAuth` hook | —                                              | `@fastify/rate-limit` on login + CORS config     |
+| Frontend | admin login form + auth state       | —                                              | public Events page with data fetching            |
+| Infra    | GitHub Actions CI workflow          | Cloudflare Pages deploy config                 | Neon branch setup + `prisma migrate deploy` step |
+
+Media uploads moved from Yahya to Elmer on 2026-10-26 (the hero was blocked on them). Yahya's presign route, type/size checks and upload component stopped being hand-written then.
 
 Every PR lists its hand-written files in the PR template. A different engineer reviews them, and the author should be able to explain them line by line.
 
@@ -253,8 +255,8 @@ Per-engineer details: [`docs/engineers/`](engineers/).
 | When      | Work                                                                                                                                                                                         |
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Week 1    | **Foundation, together:** monorepo scaffold, lint/format/CI tooling, `.env.example`, Prisma schema v1, `packages/shared` conventions. Elmer provisions Neon branches and the storage bucket. |
-| Weeks 2–3 | **Core:** Elmer does auth + users; Yahya does media uploads + leadership; Abduraheem does events. Each end to end.                                                                           |
-| Weeks 4–5 | **Content:** Elmer does hero/home + settings; Yahya does the media library + about; Abduraheem does sponsors, gallery and contact.                                                           |
+| Weeks 2–3 | **Core:** Elmer does auth + users; Yahya does leadership; Abduraheem does events. Each end to end.                                                                                           |
+| Weeks 4–5 | **Content:** Elmer does settings, media uploads + hero/home; Yahya does the media library + about; Abduraheem does sponsors, gallery and contact.                                            |
 | Week 6    | **Launch:** production Neon/Filebase/Render/Pages setup, domain and cookies verified, real content entered, polish.                                                                          |
 
 ## Open decisions
